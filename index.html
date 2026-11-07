@@ -111,14 +111,13 @@
                             </span>
                         </div>
 
-                        <label class="block w-full cursor-pointer">
+                        <!-- 音樂上傳點擊容器（直接觸發 input） -->
+                        <div id="audioUploadBox" class="border-2 border-dashed border-slate-700 hover:border-emerald-500 bg-slate-950/60 rounded-xl p-4 text-center transition group cursor-pointer">
                             <input type="file" id="audioInput" accept="audio/*" class="hidden">
-                            <div class="border-2 border-dashed border-slate-700 hover:border-emerald-500 bg-slate-950/60 rounded-xl p-4 text-center transition group">
-                                <div class="text-2xl mb-1 group-hover:scale-110 transition">🎧</div>
-                                <p id="audioFileName" class="text-sm font-bold text-slate-200 truncate">點擊選擇音樂檔案 (.mp3 / .wav / .m4a / .ogg)</p>
-                                <p class="text-xs text-slate-400 mt-1">上傳後自動解析精確秒數並均分照片時長</p>
-                            </div>
-                        </label>
+                            <div class="text-2xl mb-1 group-hover:scale-110 transition">🎧</div>
+                            <p id="audioFileName" class="text-sm font-bold text-slate-200 truncate">點擊選擇音樂檔案 (.mp3 / .wav / .m4a / .ogg)</p>
+                            <p class="text-xs text-slate-400 mt-1">上傳後自動解析精確秒數並均分照片時長</p>
+                        </div>
 
                         <!-- 獨立試聽播放器 + 綠紫雙色動態跳動頻譜 Canvas -->
                         <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-3">
@@ -176,10 +175,11 @@
                                 </p>
                             </div>
                             <div class="flex items-center gap-2">
-                                <label class="cursor-pointer px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition">
+                                <!-- 批次新增照片按鈕 -->
+                                <button type="button" id="triggerPhotoBtn" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition cursor-pointer">
                                     <span>➕ 批次新增照片</span>
                                     <input type="file" id="photoInput" accept="image/*" multiple class="hidden">
-                                </label>
+                                </button>
                                 <button id="clearPhotosBtn" class="px-3 py-2 bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition">
                                     🗑️ 清空
                                 </button>
@@ -221,10 +221,10 @@
 
                     <!-- 匯入與匯出按鈕 -->
                     <div class="flex flex-wrap items-center gap-2">
-                        <label class="cursor-pointer px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
+                        <button type="button" id="triggerSubtitleBtn" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer">
                             <span>📂 匯入 SRT/LRC (.srt/.lrc/.vtt/.txt)</span>
                             <input type="file" id="subtitleFileInput" accept=".srt,.lrc,.vtt,.txt" class="hidden">
-                        </label>
+                        </button>
                         <button id="exportSrtBtn" type="button" class="px-3.5 py-2 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white font-bold text-xs rounded-xl border border-slate-700 transition">
                             ⬇️ 匯出 SRT
                         </button>
@@ -485,6 +485,7 @@
         // DOM 元素參照
         const mainAudio = document.getElementById('mainAudio');
         const audioInput = document.getElementById('audioInput');
+        const audioUploadBox = document.getElementById('audioUploadBox');
         const audioFileName = document.getElementById('audioFileName');
         const audioDurationBadge = document.getElementById('audioDurationBadge');
         const step1PlayBtn = document.getElementById('step1PlayBtn');
@@ -494,6 +495,7 @@
         const spectrumCtx = spectrumCanvas.getContext('2d');
 
         const photoInput = document.getElementById('photoInput');
+        const triggerPhotoBtn = document.getElementById('triggerPhotoBtn');
         const clearPhotosBtn = document.getElementById('clearPhotosBtn');
         const photoGrid = document.getElementById('photoGrid');
         const photoAllocationInfo = document.getElementById('photoAllocationInfo');
@@ -501,6 +503,7 @@
         const smartFaceFocusCheck = document.getElementById('smartFaceFocus');
 
         const subtitleFileInput = document.getElementById('subtitleFileInput');
+        const triggerSubtitleBtn = document.getElementById('triggerSubtitleBtn');
         const exportSrtBtn = document.getElementById('exportSrtBtn');
         const exportLrcBtn = document.getElementById('exportLrcBtn');
         const lyricsTextarea = document.getElementById('lyricsTextarea');
@@ -529,6 +532,19 @@
         const renderStatusText = document.getElementById('renderStatusText');
         const renderPercentText = document.getElementById('renderPercentText');
         const renderProgressBar = document.getElementById('renderProgressBar');
+
+        // 強制修復手機上點擊上傳無反應問題：直接以 JS 綁定點擊觸發檔案選擇器
+        audioUploadBox.addEventListener('click', () => {
+            audioInput.click();
+        });
+
+        triggerPhotoBtn.addEventListener('click', () => {
+            photoInput.click();
+        });
+
+        triggerSubtitleBtn.addEventListener('click', () => {
+            subtitleFileInput.click();
+        });
 
         let audioCtx = null;
         let analyserNode = null;
@@ -830,7 +846,6 @@
             drawPreviewFrame(mainAudio.currentTime || 0);
         });
 
-        // 歌詞時間整體往前後退設定函式
         window.shiftAllSubtitleTime = function(deltaSec) {
             if (!state.subtitles.length) {
                 alert('目前沒有已解析的歌詞可供調整！');
@@ -1085,7 +1100,6 @@ ${s.text}
             if (gainNode) gainNode.gain.value = state.volumeBoost;
         });
 
-        // 核心 1920x1080 畫面渲染函式（支援智慧人臉置中優先構圖與 Ken Burns 運鏡）
         function renderFrameToCanvas(ctx, timeSec, totalDuration) {
             const W = 1920;
             const H = 1080;
@@ -1139,7 +1153,6 @@ ${s.text}
                         scale = 1.0;
                     }
 
-                    // 智慧人臉優先構圖：若開啟，畫面中心往上微調 8% 避免頭部遭裁切
                     if (state.smartFaceFocus) {
                         ty -= H * 0.04;
                     }
