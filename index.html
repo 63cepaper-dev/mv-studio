@@ -73,7 +73,7 @@
                     <h1 class="text-lg sm:text-xl font-black tracking-tight bg-gradient-to-r from-emerald-400 via-teal-200 to-purple-400 bg-clip-text text-transparent">
                         AI 照片音樂 MV 工作站
                     </h1>
-                    <p class="text-[11px] text-slate-400">WebCodecs 1080P 30FPS 離線精準算圖引擎 · 智慧人臉置中與歌詞時間微調版</p>
+                    <p class="text-[11px] text-slate-400">WebCodecs 1080P 30FPS 離線算圖 · 智慧人臉置中與點擊錄製時間軸版</p>
                 </div>
             </div>
 
@@ -111,7 +111,7 @@
                             </span>
                         </div>
 
-                        <!-- 音樂上傳點擊容器（直接觸發 input） -->
+                        <!-- 音樂上傳點擊容器 -->
                         <div id="audioUploadBox" class="border-2 border-dashed border-slate-700 hover:border-emerald-500 bg-slate-950/60 rounded-xl p-4 text-center transition group cursor-pointer">
                             <input type="file" id="audioInput" accept="audio/*" class="hidden">
                             <div class="text-2xl mb-1 group-hover:scale-110 transition">🎧</div>
@@ -175,7 +175,6 @@
                                 </p>
                             </div>
                             <div class="flex items-center gap-2">
-                                <!-- 批次新增照片按鈕 -->
                                 <button type="button" id="triggerPhotoBtn" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition cursor-pointer">
                                     <span>➕ 批次新增照片</span>
                                     <input type="file" id="photoInput" accept="image/*" multiple class="hidden">
@@ -210,33 +209,75 @@
         <section id="step2" class="hidden space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
-                <!-- 左側：純歌詞或時間碼貼上區 -->
+                <!-- 左側：純歌詞或時間碼貼上區 / 點擊錄製模式 -->
                 <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col space-y-4 shadow-xl">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div>
-                            <h2 class="text-base font-bold text-emerald-400">📝 歌詞編輯與字幕匯入/匯出</h2>
-                            <p class="text-xs text-slate-400">支援貼上純歌詞（自動分配時間）或含時間碼字幕（自動解析）</p>
+                            <h2 class="text-base font-bold text-emerald-400">📝 歌詞編輯與點擊錄製時間軸</h2>
+                            <p class="text-xs text-slate-400">貼上純歌詞，或匯入 SRT/LRC 檔；也可使用「點擊錄製模式」跟隨音樂節奏即時打點！</p>
                         </div>
                     </div>
 
                     <!-- 匯入與匯出按鈕 -->
                     <div class="flex flex-wrap items-center gap-2">
-                        <button type="button" id="triggerSubtitleBtn" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer">
-                            <span>📂 匯入 SRT/LRC (.srt/.lrc/.vtt/.txt)</span>
+                        <button type="button" id="triggerSubtitleBtn" class="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer">
+                            <span>📂 匯入 SRT/LRC</span>
                             <input type="file" id="subtitleFileInput" accept=".srt,.lrc,.vtt,.txt" class="hidden">
                         </button>
-                        <button id="exportSrtBtn" type="button" class="px-3.5 py-2 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white font-bold text-xs rounded-xl border border-slate-700 transition">
+                        <button id="exportSrtBtn" type="button" class="px-3 py-2 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white font-bold text-xs rounded-xl border border-slate-700 transition">
                             ⬇️ 匯出 SRT
                         </button>
-                        <button id="exportLrcBtn" type="button" class="px-3.5 py-2 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white font-bold text-xs rounded-xl border border-slate-700 transition">
+                        <button id="exportLrcBtn" type="button" class="px-3 py-2 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white font-bold text-xs rounded-xl border border-slate-700 transition">
                             ⬇️ 匯出 LRC
+                        </button>
+                        <button id="toggleTapRecordMode" type="button" class="ml-auto px-3.5 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white font-bold text-xs rounded-xl shadow transition">
+                            🔴 進入點擊錄製模式
                         </button>
                     </div>
 
-                    <textarea id="lyricsTextarea" rows="10" placeholder="在此貼上純歌詞（每行一句），或直接貼上帶有時間碼的字幕..."
-                        class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl p-3.5 text-sm text-slate-100 font-mono leading-relaxed outline-none resize-none"></textarea>
+                    <!-- 一般文字編輯區 -->
+                    <div id="textEditorBox" class="space-y-3 flex-1 flex flex-col">
+                        <textarea id="lyricsTextarea" rows="8" placeholder="在此貼上純歌詞（每行一句），例如：&#10;陽光灑在熟悉的操場&#10;我們一起大聲歌唱&#10;三六水啦 夢想啟航"
+                            class="w-full flex-1 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl p-3 text-sm text-slate-100 font-mono leading-relaxed outline-none resize-none"></textarea>
+                        
+                        <div class="flex items-center justify-between pt-1">
+                            <span class="text-xs text-slate-400">💡 系統會自動過濾 SRT 序號與時間軸，只抓取純文字歌詞</span>
+                            <button id="parseLyricsBtn" type="button" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow transition">
+                                ⚡ 解析純歌詞 / 自動分配時間
+                            </button>
+                        </div>
+                    </div>
 
-                    <!-- 新增：歌詞時間整體往前後退設定區 -->
+                    <!-- 🔴 點擊錄製時間軸互動面板 (Tap-to-Sync Mode) -->
+                    <div id="tapRecordBox" class="hidden bg-slate-950 border-2 border-emerald-500/80 rounded-xl p-4 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                                🔴 點擊錄製模式（隨音樂播放打點）
+                            </span>
+                            <span id="tapRecordStatus" class="text-xs font-mono font-bold text-yellow-400">尚未開始播放音樂</span>
+                        </div>
+                        <p class="text-xs text-slate-300">
+                            操作說明：點擊下方「▶ 播放音樂並開始錄製」，當音樂唱到特定歌詞時，點擊 **「📍 記錄這一句時間」**，系統將自動為當前句賦予開始與結束秒數，並自動跳到下一句！
+                        </p>
+                        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 text-center space-y-2">
+                            <div id="currentTapLyricDisplay" class="text-base sm:text-lg font-black text-emerald-300 min-h-[32px] flex items-center justify-center">
+                                請先於上方輸入純歌詞並點擊「解析」
+                            </div>
+                            <div class="flex items-center justify-center gap-2">
+                                <button id="tapPlayMusicBtn" type="button" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow transition">
+                                    ▶ 播放音樂試聽
+                                </button>
+                                <button id="tapRecordClickBtn" type="button" disabled class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black text-sm rounded-xl shadow transition">
+                                    📍 記錄這一句時間 (Space / 點擊)
+                                </button>
+                            </div>
+                        </div>
+                        <button id="exitTapRecordBtn" type="button" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-lg transition">
+                            ⬅ 離開點擊錄製模式
+                        </button>
+                    </div>
+
+                    <!-- 歌詞時間整體往前後退設定區 -->
                     <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
                         <div class="flex items-center justify-between text-xs font-bold text-purple-400">
                             <span>⏱️ 歌詞時間整體往前後退微調</span>
@@ -249,14 +290,6 @@
                             <button type="button" onclick="shiftAllSubtitleTime(1.0)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition">+1.0秒</button>
                             <button type="button" onclick="resetAllSubtitleTime()" class="ml-auto px-3 py-1.5 bg-rose-600/80 hover:bg-rose-500 text-white text-xs font-bold rounded-lg transition">重置歸零</button>
                         </div>
-                        <p class="text-[11px] text-slate-400">💡 若發現字幕整體比音樂快或慢，可直接點擊按鈕將所有歌詞時間統一往後延或往前退。</p>
-                    </div>
-
-                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
-                        <span class="text-xs text-slate-400">💡 系統會自動濾除畫面上的時間碼</span>
-                        <button id="parseLyricsBtn" type="button" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow transition">
-                            ⚡ 解析歌詞 / 重新分配時間
-                        </button>
                     </div>
                 </div>
 
@@ -479,7 +512,12 @@
             },
             volumeBoost: 1.0,
             renderedMp4Buffer: null,
-            isRendering: false
+            isRendering: false,
+            // 點擊錄製模式狀態
+            tapRecordActive: false,
+            tapLyricsLines: [],
+            tapCurrentIdx: 0,
+            tapStartTime: 0
         };
 
         // DOM 元素參照
@@ -512,6 +550,15 @@
         const subtitleCountBadge = document.getElementById('subtitleCountBadge');
         const timeShiftValueLabel = document.getElementById('timeShiftValueLabel');
 
+        const toggleTapRecordModeBtn = document.getElementById('toggleTapRecordMode');
+        const textEditorBox = document.getElementById('textEditorBox');
+        const tapRecordBox = document.getElementById('tapRecordBox');
+        const tapRecordStatus = document.getElementById('tapRecordStatus');
+        const currentTapLyricDisplay = document.getElementById('currentTapLyricDisplay');
+        const tapPlayMusicBtn = document.getElementById('tapPlayMusicBtn');
+        const tapRecordClickBtn = document.getElementById('tapRecordClickBtn');
+        const exitTapRecordBtn = document.getElementById('exitTapRecordBtn');
+
         const mvCanvas = document.getElementById('mvCanvas');
         const mvCtx = mvCanvas.getContext('2d');
         const previewPlayBtn = document.getElementById('previewPlayBtn');
@@ -533,18 +580,10 @@
         const renderPercentText = document.getElementById('renderPercentText');
         const renderProgressBar = document.getElementById('renderProgressBar');
 
-        // 強制修復手機上點擊上傳無反應問題：直接以 JS 綁定點擊觸發檔案選擇器
-        audioUploadBox.addEventListener('click', () => {
-            audioInput.click();
-        });
-
-        triggerPhotoBtn.addEventListener('click', () => {
-            photoInput.click();
-        });
-
-        triggerSubtitleBtn.addEventListener('click', () => {
-            subtitleFileInput.click();
-        });
+        // 強制修復手機上點擊上傳無反應問題
+        audioUploadBox.addEventListener('click', () => { audioInput.click(); });
+        triggerPhotoBtn.addEventListener('click', () => { photoInput.click(); });
+        triggerSubtitleBtn.addEventListener('click', () => { subtitleFileInput.click(); });
 
         let audioCtx = null;
         let analyserNode = null;
@@ -679,6 +718,10 @@
         mainAudio.addEventListener('ended', () => {
             step1PlayBtn.textContent = '▶ 播放試聽';
             previewPlayBtn.textContent = '▶ 播放預覽';
+            if (state.tapRecordActive) {
+                tapRecordStatus.textContent = '🎵 音樂播放完畢，點擊錄製結束！';
+                tapRecordClickBtn.disabled = true;
+            }
         });
 
         step1SeekSlider.addEventListener('input', (e) => {
@@ -846,27 +889,154 @@
             drawPreviewFrame(mainAudio.currentTime || 0);
         });
 
-        window.shiftAllSubtitleTime = function(deltaSec) {
-            if (!state.subtitles.length) {
-                alert('目前沒有已解析的歌詞可供調整！');
+        // ==================== 🔴 點擊錄製時間軸功能 (Tap-to-Sync) ====================
+        toggleTapRecordModeBtn.addEventListener('click', () => {
+            const raw = lyricsTextarea.value.trim();
+            if (!raw) {
+                alert('請先在下方文字框輸入純歌詞（每行一句），才能進入點擊錄製模式！');
                 return;
             }
-            state.totalTimeShift += deltaSec;
-            timeShiftValueLabel.textContent = `${state.totalTimeShift >= 0 ? '+' : ''}${state.totalTimeShift.toFixed(1)} 秒`;
-            
-            state.subtitles.forEach(sub => {
-                sub.start = Math.max(0, sub.start + deltaSec);
-                sub.end = Math.max(sub.start + 0.2, sub.end + deltaSec);
-            });
-            renderSubtitleList();
-            drawPreviewFrame(mainAudio.currentTime || 0);
-        };
+            // 先解析並過濾出純歌詞行
+            const lines = parseCleanLinesOnly(raw);
+            if (lines.length === 0) {
+                alert('沒有找到有效的歌詞文字！');
+                return;
+            }
 
-        window.resetAllSubtitleTime = function() {
-            state.totalTimeShift = 0;
-            timeShiftValueLabel.textContent = '+0.0 秒';
-            parseAndAlignLyrics();
-        };
+            state.tapLyricsLines = lines;
+            state.tapCurrentIdx = 0;
+            state.tapStartTime = 0;
+            state.subtitles = [];
+
+            textEditorBox.classList.add('hidden');
+            tapRecordBox.classList.remove('hidden');
+            toggleTapRecordModeBtn.classList.add('hidden');
+
+            updateTapRecordUI();
+        });
+
+        exitTapRecordBtn.addEventListener('click', () => {
+            if (!mainAudio.paused) mainAudio.pause();
+            state.tapRecordActive = false;
+            tapRecordBox.classList.add('hidden');
+            textEditorBox.classList.remove('hidden');
+            toggleTapRecordModeBtn.classList.remove('hidden');
+            renderSubtitleList();
+        });
+
+        tapPlayMusicBtn.addEventListener('click', () => {
+            if (!state.audioBuffer && !mainAudio.src) {
+                alert('請先在步驟 1 上傳音樂檔案！');
+                return;
+            }
+            initWebAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            if (mainAudio.paused) {
+                mainAudio.currentTime = 0;
+                mainAudio.play();
+                state.tapRecordActive = true;
+                tapPlayMusicBtn.textContent = '⏸ 暫停音樂';
+                tapRecordClickBtn.disabled = false;
+                tapRecordStatus.textContent = '🔴 錄製中：請跟隨音樂節奏點擊記錄';
+            } else {
+                mainAudio.pause();
+                state.tapRecordActive = false;
+                tapPlayMusicBtn.textContent = '▶ 播放音樂試聽';
+                tapRecordClickBtn.disabled = true;
+                tapRecordStatus.textContent = '⏸ 已暫停';
+            }
+        });
+
+        function recordCurrentTap() {
+            if (!state.tapRecordActive && mainAudio.paused) return;
+            if (state.tapCurrentIdx >= state.tapLyricsLines.length) return;
+
+            const nowTime = mainAudio.currentTime;
+            const text = state.tapLyricsLines[state.tapCurrentIdx];
+
+            if (state.tapCurrentIdx === 0) {
+                state.tapStartTime = Math.max(0, nowTime - 0.2); // 微調起點
+            }
+
+            const startTime = state.tapStartTime;
+            const endTime = nowTime;
+
+            // 建立或更新這句字幕
+            if (state.subtitles[state.tapCurrentIdx]) {
+                state.subtitles[state.tapCurrentIdx].start = Number(startTime.toFixed(2));
+                state.subtitles[state.tapCurrentIdx].end = Number(endTime.toFixed(2));
+            } else {
+                state.subtitles.push({
+                    start: Number(startTime.toFixed(2)),
+                    end: Number(endTime.toFixed(2)),
+                    text: text
+                });
+            }
+
+            state.tapStartTime = endTime; // 下一句的起點為上一句的終點
+            state.tapCurrentIdx++;
+
+            updateTapRecordUI();
+            renderSubtitleList();
+
+            if (state.tapCurrentIdx >= state.tapLyricsLines.length) {
+                state.tapRecordActive = false;
+                if (!mainAudio.paused) mainAudio.pause();
+                tapRecordStatus.textContent = '✅ 所有歌詞時間軸點擊錄製完成！';
+                tapRecordClickBtn.disabled = true;
+                tapPlayMusicBtn.textContent = '▶ 播放音樂試聽';
+            }
+        }
+
+        tapRecordClickBtn.addEventListener('click', recordCurrentTap);
+
+        // 支援空白鍵 (Space) 直接打點記錄
+        window.addEventListener('keydown', (e) => {
+            if (state.tapRecordActive && e.code === 'Space') {
+                e.preventDefault();
+                recordCurrentTap();
+            }
+        });
+
+        function updateTapRecordUI() {
+            if (state.tapCurrentIdx < state.tapLyricsLines.length) {
+                const currentTxt = state.tapLyricsLines[state.tapCurrentIdx];
+                const nextTxt = state.tapLyricsLines[state.tapCurrentIdx + 1] ? `(下一句：${state.tapLyricsLines[state.tapCurrentIdx + 1]})` : '(最後一句)';
+                currentTapLyricDisplay.innerHTML = `🎵 正在唱第 ${state.tapCurrentIdx + 1}/${state.tapLyricsLines.length} 句：<span class="text-white underline">${currentTxt}</span> <span class="text-xs text-slate-400 ml-2">${nextTxt}</span>`;
+            } else {
+                currentTapLyricDisplay.textContent = '🎉 錄製完畢！';
+            }
+        }
+
+        // ==================== 🛠️ 嚴謹純淨的 SRT / 歌詞解析器 ====================
+        function parseCleanLinesOnly(rawText) {
+            const lines = rawText.replace(/
+/g, '
+').split('
+').map(l => l.trim());
+            const clean = [];
+            for (let i = 0; i < lines.length; i++) {
+                const l = lines[i];
+                if (!l) continue;
+                // 如果是 SRT 序號（純數字且下一行是時間軸）
+                if (/^\d+$/.test(l) && lines[i+1] && /\d{2}:\d{2}:\d{2}[.,]\d{3}\s*-->/.test(lines[i+1])) {
+                    continue;
+                }
+                // 如果是 SRT 時間軸行
+                if (/\d{2}:\d{2}:\d{2}[.,]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[.,]\d{3}/.test(l)) {
+                    continue;
+                }
+                // 如果是 LRC 時間碼 [00:12.34]
+                if (/^\[\d{1,2}:\d{2}(?:[.,]\d{1,3})?\]/.test(l)) {
+                    const textOnly = l.replace(/\[?\d{1,2}:\d{2}(?:[.,]\d{1,3})?\]?/g, '').trim();
+                    if (textOnly) clean.push(textOnly);
+                    continue;
+                }
+                clean.push(l);
+            }
+            return clean;
+        }
 
         function parseAndAlignLyrics() {
             const raw = lyricsTextarea.value;
@@ -883,6 +1053,7 @@
 ').split('
 ').map(l => l.trim()).filter(Boolean);
 
+            // 檢查是否為完整的 SRT 格式匯入
             const isSrt = lines.some(l => /\d{2}:\d{2}:\d{2}[.,]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[.,]\d{3}/.test(l));
             if (isSrt) {
                 const subs = [];
@@ -899,9 +1070,13 @@
                         const m = bLines[timeLineIdx].match(/(\d{2}):(\d{2}):(\d{2})[.,](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[.,](\d{3})/);
                         const start = parseInt(m[1])*3600 + parseInt(m[2])*60 + parseInt(m[3]) + parseInt(m[4])/1000;
                         const end = parseInt(m[5])*3600 + parseInt(m[6])*60 + parseInt(m[7]) + parseInt(m[8])/1000;
+                        
+                        // 嚴格過濾：僅抓取時間軸下方的真正文字，絕對排除序號與時間軸本身
                         const textLines = bLines.slice(timeLineIdx + 1)
+                            .filter(t => !/\d{2}:\d{2}:\d{2}/.test(t) && !/^\d+$/.test(t))
                             .map(t => t.replace(/\[?\d{1,2}:\d{2}(?:[.,]\d{1,3})?\]?/g, '').trim())
                             .filter(Boolean);
+                        
                         if (textLines.length) {
                             subs.push({ start, end, text: textLines.join(' ') });
                         }
@@ -915,6 +1090,7 @@
                 return;
             }
 
+            // 檢查是否含有 LRC 格式
             const lrcRegex = /\[?(\d{1,2}):(\d{2})(?:[.,](\d{1,3}))?\]?/;
             const timedLines = [];
             let hasTimestamp = false;
@@ -946,9 +1122,13 @@
                     };
                 });
             } else {
-                const cleanPureLines = lines
-                    .map(l => l.replace(/\[?\d{1,2}:\d{2}(?:[.,]\d{1,3})?\]?/g, '').trim())
-                    .filter(Boolean);
+                // 純歌詞：依字數加權自動分配時間
+                const cleanPureLines = parseCleanLinesOnly(raw);
+                if (cleanPureLines.length === 0) {
+                    state.subtitles = [];
+                    renderSubtitleList();
+                    return;
+                }
 
                 const weights = cleanPureLines.map(l => Math.max(2, l.length));
                 const totalWeight = weights.reduce((a, b) => a + b, 0) || 1;
@@ -970,6 +1150,28 @@
         }
 
         parseLyricsBtn.addEventListener('click', parseAndAlignLyrics);
+
+        window.shiftAllSubtitleTime = function(deltaSec) {
+            if (!state.subtitles.length) {
+                alert('目前沒有已解析的歌詞可供調整！');
+                return;
+            }
+            state.totalTimeShift += deltaSec;
+            timeShiftValueLabel.textContent = `${state.totalTimeShift >= 0 ? '+' : ''}${state.totalTimeShift.toFixed(1)} 秒`;
+            
+            state.subtitles.forEach(sub => {
+                sub.start = Math.max(0, sub.start + deltaSec);
+                sub.end = Math.max(sub.start + 0.2, sub.end + deltaSec);
+            });
+            renderSubtitleList();
+            drawPreviewFrame(mainAudio.currentTime || 0);
+        };
+
+        window.resetAllSubtitleTime = function() {
+            state.totalTimeShift = 0;
+            timeShiftValueLabel.textContent = '+0.0 秒';
+            parseAndAlignLyrics();
+        };
 
         function renderSubtitleList() {
             subtitleCountBadge.textContent = `${state.subtitles.length} 句字幕`;
