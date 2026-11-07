@@ -37,7 +37,7 @@
 </head>
 <body class="min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white">
 
-    <!-- 鐵律 3：防手機注音鍵盤遮擋 - 頂部置頂浮動面板 (fixed top-0 left-0 right-0 z-50) -->
+    <!-- 頂部置頂浮動面板 (防手機注音鍵盤遮擋) -->
     <div id="filenameModal" class="hidden fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md border-b-2 border-emerald-500 shadow-2xl p-4 transition-all">
         <div class="max-w-2xl mx-auto flex flex-col gap-3">
             <div class="flex items-center justify-between">
@@ -73,7 +73,7 @@
                     <h1 class="text-lg sm:text-xl font-black tracking-tight bg-gradient-to-r from-emerald-400 via-teal-200 to-purple-400 bg-clip-text text-transparent">
                         AI 照片音樂 MV 工作站
                     </h1>
-                    <p class="text-[11px] text-slate-400">WebCodecs 1080P 30FPS 離線精準算圖引擎 · 支援關鍵影格秒數鎖定</p>
+                    <p class="text-[11px] text-slate-400">WebCodecs 1080P 30FPS 離線精準算圖引擎 · 智慧人臉置中與歌詞時間微調版</p>
                 </div>
             </div>
 
@@ -137,18 +137,29 @@
                         </div>
                     </div>
 
-                    <!-- Ken Burns 運鏡模式選單 -->
-                    <div class="pt-3 border-t border-slate-800 space-y-2">
-                        <label for="kenBurnsMode" class="block text-sm font-bold text-purple-400">
-                            🎥 5 種 Ken Burns 電影級運鏡模式
-                        </label>
-                        <select id="kenBurnsMode" class="w-full bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-semibold outline-none">
-                            <option value="smart">✨ 智慧交替（奇數張緩慢放大、偶數張緩慢縮小 + 微平移）</option>
-                            <option value="zoomIn">🔍 全部放大（全體緩慢拉近聚焦）</option>
-                            <option value="zoomOut">🖼️ 全部縮小（全體由特寫緩慢拉遠）</option>
-                            <option value="pan">↔️ 水平平移（左右絲滑橫移運鏡）</option>
-                            <option value="static">⏹️ 靜態滿版（無縮放平移，居中裁切填滿）</option>
-                        </select>
+                    <!-- Ken Burns 運鏡模式選單 & 智慧人臉置中選項 -->
+                    <div class="pt-3 border-t border-slate-800 space-y-3">
+                        <div>
+                            <label for="kenBurnsMode" class="block text-sm font-bold text-purple-400 mb-1">
+                                🎥 5 種 Ken Burns 電影級運鏡模式
+                            </label>
+                            <select id="kenBurnsMode" class="w-full bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-semibold outline-none">
+                                <option value="smart">✨ 智慧交替（奇數張緩慢放大、偶數張緩慢縮小 + 微平移）</option>
+                                <option value="zoomIn">🔍 全部放大（全體緩慢拉近聚焦）</option>
+                                <option value="zoomOut">🖼️ 全部縮小（全體由特寫緩慢拉遠）</option>
+                                <option value="pan">↔️ 水平平移（左右絲滑橫移運鏡）</option>
+                                <option value="static">⏹️ 靜態滿版（無縮放平移，居中裁切填滿）</option>
+                            </select>
+                        </div>
+
+                        <!-- 智慧人臉 / 主體偏好設定 -->
+                        <div class="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
+                            <div>
+                                <span class="text-xs font-bold text-emerald-400 block">👤 智慧人臉優先構圖（防裁切）</span>
+                                <span class="text-[11px] text-slate-400">算圖時自動對焦並略微上調畫面中心，避免頭部遭裁切</span>
+                            </div>
+                            <input type="checkbox" id="smartFaceFocus" checked class="w-4 h-4 accent-emerald-500 cursor-pointer">
+                        </div>
                     </div>
                 </div>
 
@@ -204,11 +215,11 @@
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div>
                             <h2 class="text-base font-bold text-emerald-400">📝 歌詞編輯與字幕匯入/匯出</h2>
-                            <p class="text-xs text-slate-400">支援貼上純歌詞（依字數加權自動分配時間）或含時間碼字幕（自動解析並隱藏時間碼）</p>
+                            <p class="text-xs text-slate-400">支援貼上純歌詞（自動分配時間）或含時間碼字幕（自動解析）</p>
                         </div>
                     </div>
 
-                    <!-- 三顆指定按鈕：匯入 SRT/LRC、匯出 SRT、匯出 LRC -->
+                    <!-- 匯入與匯出按鈕 -->
                     <div class="flex flex-wrap items-center gap-2">
                         <label class="cursor-pointer px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
                             <span>📂 匯入 SRT/LRC (.srt/.lrc/.vtt/.txt)</span>
@@ -222,13 +233,29 @@
                         </button>
                     </div>
 
-                    <textarea id="lyricsTextarea" rows="12" placeholder="在此貼上純歌詞（每行一句），或直接貼上帶有 [00:12.34] / 00:00:12,340 --> 00:00:15,000 的歌詞...&#10;&#10;範例純歌詞：&#10;陽光灑在熟悉的操場&#10;我們一起大聲歌唱&#10;三六水啦 夢想啟航"
-                        class="w-full flex-1 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl p-3.5 text-sm text-slate-100 font-mono leading-relaxed outline-none resize-none"></textarea>
+                    <textarea id="lyricsTextarea" rows="10" placeholder="在此貼上純歌詞（每行一句），或直接貼上帶有時間碼的字幕..."
+                        class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl p-3.5 text-sm text-slate-100 font-mono leading-relaxed outline-none resize-none"></textarea>
+
+                    <!-- 新增：歌詞時間整體往前後退設定區 -->
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
+                        <div class="flex items-center justify-between text-xs font-bold text-purple-400">
+                            <span>⏱️ 歌詞時間整體往前後退微調</span>
+                            <span id="timeShiftValueLabel" class="font-mono text-emerald-400">+0.0 秒</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="shiftAllSubtitleTime(-1.0)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition">-1.0秒</button>
+                            <button type="button" onclick="shiftAllSubtitleTime(-0.5)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition">-0.5秒</button>
+                            <button type="button" onclick="shiftAllSubtitleTime(0.5)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition">+0.5秒</button>
+                            <button type="button" onclick="shiftAllSubtitleTime(1.0)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition">+1.0秒</button>
+                            <button type="button" onclick="resetAllSubtitleTime()" class="ml-auto px-3 py-1.5 bg-rose-600/80 hover:bg-rose-500 text-white text-xs font-bold rounded-lg transition">重置歸零</button>
+                        </div>
+                        <p class="text-[11px] text-slate-400">💡 若發現字幕整體比音樂快或慢，可直接點擊按鈕將所有歌詞時間統一往後延或往前退。</p>
+                    </div>
 
                     <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
-                        <span class="text-xs text-slate-400">💡 系統會自動濾除畫面上的時間碼，僅保留純淨歌詞字幕</span>
+                        <span class="text-xs text-slate-400">💡 系統會自動濾除畫面上的時間碼</span>
                         <button id="parseLyricsBtn" type="button" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow transition">
-                            ⚡ 解析歌詞 / 依字數加權重新分配時間
+                            ⚡ 解析歌詞 / 重新分配時間
                         </button>
                     </div>
                 </div>
@@ -323,7 +350,7 @@
                             </div>
                         </div>
 
-                        <!-- 合成與立即下載按鈕區（鐵律 4：合成完成絕不自動下載，點擊立即下載才動態附加當下時分秒） -->
+                        <!-- 合成與立即下載按鈕區 -->
                         <div class="flex flex-wrap items-center gap-3 pt-1">
                             <button id="startRenderBtn" type="button" class="flex-1 min-w-[200px] py-3 px-5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-sm sm:text-base rounded-xl shadow-lg shadow-emerald-600/25 transition flex items-center justify-center gap-2">
                                 🚀 開始合成 1080P MP4 影片
@@ -341,7 +368,7 @@
                         🎨 字幕樣式與音效強化控制台（即時預覽）
                     </h2>
 
-                    <!-- 字幕垂直位置（預設「貼齊最底邊 96%」避開人臉、90%、82%、50%、12%） -->
+                    <!-- 字幕垂直位置 -->
                     <div class="space-y-1.5">
                         <label for="subPosY" class="block text-xs font-bold text-slate-300">
                             📍 字幕垂直位置（預設貼齊最底邊 96% 避開人臉）
@@ -441,15 +468,17 @@
             photos: [], // { id, file, url, img }
             subtitles: [], // { start, end, text }
             kenBurnsMode: 'smart',
+            smartFaceFocus: true, // 智慧人臉優先構圖
+            totalTimeShift: 0,    // 歌詞整體往前後退累計秒數
             subStyle: {
-                posY: 0.96, // 預設貼齊最底邊 96%
+                posY: 0.96,
                 fontFamily: "'Noto Sans TC', 'Microsoft JhengHei', sans-serif",
                 fontSize: 64,
                 outlineWidth: 10,
                 color: '#FFFFFF'
             },
-            volumeBoost: 1.0, // 1.0 ~ 3.0
-            renderedMp4Buffer: null, // ArrayBuffer (鐵律4：不預先綁定隱藏連結，點擊才即時建立)
+            volumeBoost: 1.0,
+            renderedMp4Buffer: null,
             isRendering: false
         };
 
@@ -469,6 +498,7 @@
         const photoGrid = document.getElementById('photoGrid');
         const photoAllocationInfo = document.getElementById('photoAllocationInfo');
         const kenBurnsModeSelect = document.getElementById('kenBurnsMode');
+        const smartFaceFocusCheck = document.getElementById('smartFaceFocus');
 
         const subtitleFileInput = document.getElementById('subtitleFileInput');
         const exportSrtBtn = document.getElementById('exportSrtBtn');
@@ -477,6 +507,7 @@
         const parseLyricsBtn = document.getElementById('parseLyricsBtn');
         const subtitleListContainer = document.getElementById('subtitleListContainer');
         const subtitleCountBadge = document.getElementById('subtitleCountBadge');
+        const timeShiftValueLabel = document.getElementById('timeShiftValueLabel');
 
         const mvCanvas = document.getElementById('mvCanvas');
         const mvCtx = mvCanvas.getContext('2d');
@@ -499,14 +530,12 @@
         const renderPercentText = document.getElementById('renderPercentText');
         const renderProgressBar = document.getElementById('renderProgressBar');
 
-        // Web Audio API 頻譜與防爆音節點
         let audioCtx = null;
         let analyserNode = null;
         let gainNode = null;
         let shaperNode = null;
         let sourceNode = null;
 
-        // ==================== 頁籤切換 ====================
         function switchTab(tabIndex) {
             [1, 2, 3].forEach(i => {
                 const section = document.getElementById(`step${i}`);
@@ -524,7 +553,6 @@
             drawPreviewFrame(mainAudio.currentTime || 0);
         }
 
-        // ==================== 格式化時間工具 ====================
         function formatTime(sec) {
             if (!isFinite(sec) || sec < 0) sec = 0;
             const m = Math.floor(sec / 60);
@@ -549,7 +577,6 @@
             return `[${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(cs).padStart(2, '0')}]`;
         }
 
-        // ==================== 步驟 1：音訊載入與 Web Audio 綠紫頻譜 ====================
         function initWebAudio() {
             if (audioCtx) return;
             const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -560,7 +587,6 @@
             analyserNode = audioCtx.createAnalyser();
             analyserNode.fftSize = 128;
 
-            // 建立 Math.tanh 軟削波曲線
             const curve = new Float32Array(65536);
             for (let i = 0; i < 65536; i++) {
                 const x = (i * 2) / 65536 - 1;
@@ -590,7 +616,6 @@
             const objectUrl = URL.createObjectURL(file);
             mainAudio.src = objectUrl;
 
-            // 解碼 AudioBuffer 供離線算圖使用
             const arrayBuf = await file.arrayBuffer();
             const TempAudioCtx = window.AudioContext || window.webkitAudioContext;
             const tempCtx = new TempAudioCtx();
@@ -612,7 +637,6 @@
             drawPreviewFrame(0);
         });
 
-        // 播放與暫停控制
         function togglePlay() {
             if (!state.audioBuffer && !mainAudio.src) {
                 alert('請先在步驟 1 上傳音樂檔案！');
@@ -664,9 +688,7 @@
             previewTimeDisplay.textContent = txt;
         }
 
-        // 綠紫雙色動態跳動頻譜與即時預覽迴圈
         function animationLoop() {
-            // 繪製綠紫雙色動態頻譜
             const w = spectrumCanvas.width;
             const h = spectrumCanvas.height;
             spectrumCtx.clearRect(0, 0, w, h);
@@ -685,14 +707,13 @@
                     const y = h - barHeight;
 
                     const grad = spectrumCtx.createLinearGradient(0, y, 0, h);
-                    grad.addColorStop(0, '#34d399'); // 翠綠
+                    grad.addColorStop(0, '#34d399');
                     grad.addColorStop(0.5, '#10b981');
-                    grad.addColorStop(1, '#9333ea'); // 紫羅蘭
+                    grad.addColorStop(1, '#9333ea');
                     spectrumCtx.fillStyle = grad;
                     spectrumCtx.fillRect(x, y, barWidth, barHeight);
                 }
             } else {
-                // 靜態待機波紋
                 const barCount = 40;
                 const barWidth = (w / barCount) - 3;
                 for (let i = 0; i < barCount; i++) {
@@ -714,7 +735,6 @@
         }
         requestAnimationFrame(animationLoop);
 
-        // ==================== 步驟 1-B：批次照片管理 ====================
         photoInput.addEventListener('change', async (e) => {
             const files = Array.from(e.target.files);
             if (!files.length) return;
@@ -805,7 +825,34 @@
             drawPreviewFrame(mainAudio.currentTime || 0);
         });
 
-        // ==================== 步驟 2：歌詞解析、SRT/LRC 匯入與匯出 ====================
+        smartFaceFocusCheck.addEventListener('change', (e) => {
+            state.smartFaceFocus = e.target.checked;
+            drawPreviewFrame(mainAudio.currentTime || 0);
+        });
+
+        // 歌詞時間整體往前後退設定函式
+        window.shiftAllSubtitleTime = function(deltaSec) {
+            if (!state.subtitles.length) {
+                alert('目前沒有已解析的歌詞可供調整！');
+                return;
+            }
+            state.totalTimeShift += deltaSec;
+            timeShiftValueLabel.textContent = `${state.totalTimeShift >= 0 ? '+' : ''}${state.totalTimeShift.toFixed(1)} 秒`;
+            
+            state.subtitles.forEach(sub => {
+                sub.start = Math.max(0, sub.start + deltaSec);
+                sub.end = Math.max(sub.start + 0.2, sub.end + deltaSec);
+            });
+            renderSubtitleList();
+            drawPreviewFrame(mainAudio.currentTime || 0);
+        };
+
+        window.resetAllSubtitleTime = function() {
+            state.totalTimeShift = 0;
+            timeShiftValueLabel.textContent = '+0.0 秒';
+            parseAndAlignLyrics();
+        };
+
         function parseAndAlignLyrics() {
             const raw = lyricsTextarea.value;
             if (!raw.trim()) {
@@ -821,7 +868,6 @@
 ').split('
 ').map(l => l.trim()).filter(Boolean);
 
-            // 檢查是否為 SRT 格式
             const isSrt = lines.some(l => /\d{2}:\d{2}:\d{2}[.,]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[.,]\d{3}/.test(l));
             if (isSrt) {
                 const subs = [];
@@ -847,18 +893,18 @@
                     }
                 }
                 state.subtitles = subs;
+                state.totalTimeShift = 0;
+                timeShiftValueLabel.textContent = '+0.0 秒';
                 renderSubtitleList();
                 drawPreviewFrame(mainAudio.currentTime || 0);
                 return;
             }
 
-            // 檢查是否含有 LRC 或行內時間碼 (如 [00:12.34] 或 00:12.34)
             const lrcRegex = /\[?(\d{1,2}):(\d{2})(?:[.,](\d{1,3}))?\]?/;
             const timedLines = [];
             let hasTimestamp = false;
 
             for (const line of lines) {
-                // 略過 LRC metadata 標籤如 [ti:...] [ar:...]
                 if (/^\[(ti|ar|al|by|offset):/i.test(line)) continue;
                 const match = line.match(lrcRegex);
                 if (match) {
@@ -867,7 +913,6 @@
                     const sec = parseInt(match[2], 10);
                     const frac = match[3] ? parseFloat('0.' + match[3]) : 0;
                     const start = min * 60 + sec + frac;
-                    // 濾除畫面上所有時間碼
                     const cleanText = line.replace(/\[?\d{1,2}:\d{2}(?:[.,]\d{1,3})?\]?/g, '').trim();
                     if (cleanText) {
                         timedLines.push({ start, text: cleanText });
@@ -886,7 +931,6 @@
                     };
                 });
             } else {
-                // 純歌詞：依字數加權自動分配時間
                 const cleanPureLines = lines
                     .map(l => l.replace(/\[?\d{1,2}:\d{2}(?:[.,]\d{1,3})?\]?/g, '').trim())
                     .filter(Boolean);
@@ -904,6 +948,8 @@
                 });
             }
 
+            state.totalTimeShift = 0;
+            timeShiftValueLabel.textContent = '+0.0 秒';
             renderSubtitleList();
             drawPreviewFrame(mainAudio.currentTime || 0);
         }
@@ -963,7 +1009,6 @@
             }
         };
 
-        // 匯入 SRT/LRC/VTT/TXT
         subtitleFileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -973,53 +1018,33 @@
             subtitleFileInput.value = '';
         });
 
-        // 匯出 SRT
         exportSrtBtn.addEventListener('click', () => {
-            if (!state.subtitles.length) {
-                parseAndAlignLyrics();
-            }
-            if (!state.subtitles.length) {
-                alert('目前沒有可匯出的字幕內容！');
-                return;
-            }
-            const srtContent = state.subtitles.map((s, i) => {
-                return `${i + 1}
+            if (!state.subtitles.length) parseAndAlignLyrics();
+            if (!state.subtitles.length) { alert('目前沒有可匯出的字幕內容！'); return; }
+            const srtContent = state.subtitles.map((s, i) => `${i + 1}
 ${formatSrtTime(s.start)} --> ${formatSrtTime(s.end)}
 ${s.text}
-`;
-            }).join('
+`).join('
 ');
-
             const blob = new Blob([srtContent], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `${state.exportBaseName || 'subtitles'}.srt`;
-            a.click();
+            a.href = url; a.download = `${state.exportBaseName || 'subtitles'}.srt`; a.click();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
         });
 
-        // 匯出 LRC
         exportLrcBtn.addEventListener('click', () => {
-            if (!state.subtitles.length) {
-                parseAndAlignLyrics();
-            }
-            if (!state.subtitles.length) {
-                alert('目前沒有可匯出的歌詞內容！');
-                return;
-            }
+            if (!state.subtitles.length) parseAndAlignLyrics();
+            if (!state.subtitles.length) { alert('目前沒有可匯出的歌詞內容！'); return; }
             const lrcContent = state.subtitles.map(s => `${formatLrcTime(s.start)}${s.text}`).join('
 ');
             const blob = new Blob([lrcContent], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `${state.exportBaseName || 'lyrics'}.lrc`;
-            a.click();
+            a.href = url; a.download = `${state.exportBaseName || 'lyrics'}.lrc`; a.click();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
         });
 
-        // ==================== 步驟 3：字幕樣式、音量倍增與 1080P 畫布繪製 ====================
         document.getElementById('subPosY').addEventListener('change', (e) => {
             state.subStyle.posY = parseFloat(e.target.value);
             drawPreviewFrame(mainAudio.currentTime || 0);
@@ -1057,12 +1082,10 @@ ${s.text}
             const pct = parseInt(e.target.value, 10);
             state.volumeBoost = pct / 100;
             document.getElementById('volumeBoostVal').textContent = `${pct}%`;
-            if (gainNode) {
-                gainNode.gain.value = state.volumeBoost;
-            }
+            if (gainNode) gainNode.gain.value = state.volumeBoost;
         });
 
-        // 核心 1920x1080 畫面渲染函式（預覽與 WebCodecs 逐幀算圖共用）
+        // 核心 1920x1080 畫面渲染函式（支援智慧人臉置中優先構圖與 Ken Burns 運鏡）
         function renderFrameToCanvas(ctx, timeSec, totalDuration) {
             const W = 1920;
             const H = 1080;
@@ -1071,7 +1094,6 @@ ${s.text}
 
             const dur = Math.max(0.1, totalDuration || state.audioDuration || 30);
 
-            // 1. 繪製照片與 Ken Burns 運鏡
             if (state.photos.length > 0) {
                 const segDur = dur / state.photos.length;
                 const idx = Math.min(state.photos.length - 1, Math.floor(timeSec / segDur));
@@ -1117,6 +1139,11 @@ ${s.text}
                         scale = 1.0;
                     }
 
+                    // 智慧人臉優先構圖：若開啟，畫面中心往上微調 8% 避免頭部遭裁切
+                    if (state.smartFaceFocus) {
+                        ty -= H * 0.04;
+                    }
+
                     ctx.save();
                     ctx.translate(W / 2 + tx, H / 2 + ty);
                     ctx.scale(scale, scale);
@@ -1124,7 +1151,6 @@ ${s.text}
                     ctx.restore();
                 }
             } else {
-                // 無照片時顯示質感漸層背景
                 const grad = ctx.createLinearGradient(0, 0, W, H);
                 grad.addColorStop(0, '#0f172a');
                 grad.addColorStop(0.5, '#1e1b4b');
@@ -1139,7 +1165,6 @@ ${s.text}
                 ctx.fillText('AI 照片音樂 MV 工作站 · 1920×1080 預覽畫布', W / 2, H / 2);
             }
 
-            // 2. 繪製當前時間字幕
             const activeSub = state.subtitles.find(s => timeSec >= s.start && timeSec <= s.end);
             if (activeSub && activeSub.text) {
                 const { posY, fontFamily, fontSize, outlineWidth, color } = state.subStyle;
@@ -1151,7 +1176,6 @@ ${s.text}
                 const x = W / 2;
                 const y = H * posY;
 
-                // 深黑外框與陰影
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
                 ctx.shadowBlur = 12;
                 ctx.shadowOffsetX = 0;
@@ -1175,7 +1199,6 @@ ${s.text}
             renderFrameToCanvas(mvCtx, timeSec, state.audioDuration || 30);
         }
 
-        // ==================== 鐵律 3：防手機注音鍵盤遮擋（頂部置頂浮動面板） ====================
         openFilenameModalBtn.addEventListener('click', () => {
             filenameModalInput.value = state.exportBaseName;
             filenameModal.classList.remove('hidden');
@@ -1200,7 +1223,6 @@ ${s.text}
             filenameModal.classList.add('hidden');
         });
 
-        // ==================== 鐵律 1 & 2：WebCodecs + mp4-muxer 30FPS 離線逐幀算圖 ====================
         startRenderBtn.addEventListener('click', async () => {
             if (state.isRendering) return;
             if (!window.VideoEncoder || !window.AudioEncoder) {
@@ -1233,50 +1255,38 @@ ${s.text}
                 const sampleRate = state.audioBuffer ? state.audioBuffer.sampleRate : 48000;
                 const numberOfChannels = 2;
 
-                // 鐵律 2：Mp4Muxer.Muxer 必須設定 fastStart: 'in-memory'
                 const muxer = new Mp4Muxer.Muxer({
                     target: new Mp4Muxer.ArrayBufferTarget(),
-                    video: {
-                        codec: 'avc',
-                        width: W,
-                        height: H
-                    },
-                    audio: {
-                        codec: 'aac',
-                        numberOfChannels: numberOfChannels,
-                        sampleRate: sampleRate
-                    },
+                    video: { codec: 'avc', width: W, height: H },
+                    audio: { codec: 'aac', numberOfChannels: numberOfChannels, sampleRate: sampleRate },
                     fastStart: 'in-memory'
                 });
 
-                // 建立 VideoEncoder
                 const videoEncoder = new VideoEncoder({
                     output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
                     error: (err) => console.error('VideoEncoder error:', err)
                 });
 
                 videoEncoder.configure({
-                    codec: 'avc1.640028', // H.264 High Profile Level 4.0 (支援 1920x1080@30fps)
+                    codec: 'avc1.640028',
                     width: W,
                     height: H,
                     bitrate: 8_000_000,
                     framerate: FPS
                 });
 
-                // 建立 AudioEncoder
                 const audioEncoder = new AudioEncoder({
                     output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
                     error: (err) => console.error('AudioEncoder error:', err)
                 });
 
                 audioEncoder.configure({
-                    codec: 'mp4a.40.2', // AAC-LC
+                    codec: 'mp4a.40.2',
                     numberOfChannels: numberOfChannels,
                     sampleRate: sampleRate,
                     bitrate: 192_000
                 });
 
-                // 1. 編碼音訊（套用音量倍增 100%~300% 與 Math.tanh 防爆音軟削波）
                 renderStatusText.textContent = '正在處理音軌增益與 Math.tanh 軟削波編碼...';
                 const totalAudioSamples = Math.floor(totalDuration * sampleRate);
                 const leftIn = state.audioBuffer ? state.audioBuffer.getChannelData(0) : new Float32Array(totalAudioSamples);
@@ -1284,7 +1294,7 @@ ${s.text}
                     ? state.audioBuffer.getChannelData(1)
                     : leftIn;
 
-                const chunkFrames = sampleRate; // 每次送 1 秒 planar 音訊
+                const chunkFrames = sampleRate;
                 const boost = state.volumeBoost;
 
                 for (let offset = 0; offset < totalAudioSamples; offset += chunkFrames) {
@@ -1318,8 +1328,6 @@ ${s.text}
                     audioData.close();
                 }
 
-                // 2. 離線 30FPS 逐幀繪製與編碼視訊
-                // 鐵律 2：每 30 幀（每 1 秒）強制設定 { keyFrame: true } 建立關鍵影格索引表 (stss)
                 for (let frameIdx = 0; frameIdx < totalFrames; frameIdx++) {
                     const timeSec = frameIdx / FPS;
                     renderFrameToCanvas(mvCtx, timeSec, totalDuration);
@@ -1336,7 +1344,6 @@ ${s.text}
                     videoEncoder.encode(videoFrame, { keyFrame: isKeyFrame });
                     videoFrame.close();
 
-                    // 若佇列較深則等待消化，避免記憶體暴漲
                     if (videoEncoder.encodeQueueSize > 15) {
                         await videoEncoder.flush();
                     }
@@ -1359,7 +1366,6 @@ ${s.text}
                 muxer.finalize();
                 state.renderedMp4Buffer = muxer.target.buffer;
 
-                // 鐵律 4：合成完成時絕不自動下載，也不可預先將 Blob 綁定至隱藏連結
                 renderStatusText.textContent = '✅ 1080P MP4 合成完畢！請點擊下方「立即下載 MP4」儲存檔案。';
                 manualDownloadBtn.classList.remove('hidden');
             } catch (err) {
@@ -1372,7 +1378,6 @@ ${s.text}
             }
         });
 
-        // 鐵律 4：點擊「立即下載」時，檔名後方自動附加當下時分秒（如 檔名_143022.mp4），確保每次檔名唯一
         manualDownloadBtn.addEventListener('click', () => {
             if (!state.renderedMp4Buffer) {
                 alert('請先合成影片！');
@@ -1395,7 +1400,6 @@ ${s.text}
             setTimeout(() => URL.revokeObjectURL(url), 3000);
         });
 
-        // 初始繪製預覽畫面
         drawPreviewFrame(0);
     </script>
 </body>
