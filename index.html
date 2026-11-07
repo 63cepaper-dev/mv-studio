@@ -1,879 +1,1402 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AI 照片音樂 MV 工作站</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- 引入純前端 ISO-BMFF MP4 硬體封裝核心 mp4-muxer -->
-  <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.min.js"></script>
-  <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { background-color: #090d16; color: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; }
-    input[type=range] { -webkit-appearance: none; background: #1e293b; border-radius: 999px; height: 6px; }
-    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #6366f1; cursor: pointer; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.5); }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 照片音樂 MV 工作站</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #090d16;
+            color: #f8fafc;
+            overscroll-behavior: none;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        input[type="range"] {
+            accent-color: #10b981;
+        }
+        .tab-active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39);
+        }
+        .canvas-aspect {
+            aspect-ratio: 16 / 9;
+            width: 100%;
+            max-width: 960px;
+            margin: 0 auto;
+        }
+    </style>
 </head>
-<body class="min-h-screen pb-20">
+<body class="min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white">
 
-  <!-- 頂部置頂浮動改名面板（防手機注音鍵盤遮擋） -->
-  <div id="topRenameModal" class="hidden fixed top-0 left-0 right-0 z-50 bg-slate-900/98 border-b-2 border-indigo-500 p-3 shadow-2xl">
-    <div class="max-w-xl mx-auto space-y-2">
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-bold text-indigo-400">✏️ 修改影片檔名（頂部防鍵盤遮擋模式）</span>
-        <button id="closeRenameModalBtn" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow">完成確定</button>
-      </div>
-      <div class="flex items-center space-x-2">
-        <input type="text" id="topModalFileNameInput" class="w-full bg-slate-950 border border-indigo-500 rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-none" placeholder="輸入自訂檔名...">
-        <button id="useSongNameBtn" class="whitespace-nowrap px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg border border-slate-700">帶入歌名</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 頂部固定標題與三步驟導覽列 -->
-  <header class="sticky top-0 z-30 bg-slate-900/95 backdrop-blur border-b border-slate-800 px-3 py-2.5">
-    <div class="max-w-3xl mx-auto space-y-2.5">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md">
-            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          </div>
-          <div>
-            <h1 class="text-sm font-bold text-white leading-tight">AI 照片音樂 MV 工作站</h1>
-            <p class="text-[10px] text-slate-400">1080P 滿版 · WebCodecs 原生 MP4 逐幀封裝引擎</p>
-          </div>
-        </div>
-        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">原生 H.264 MP4</span>
-      </div>
-
-      <div class="flex space-x-1.5 overflow-x-auto no-scrollbar pb-0.5">
-        <button data-step="1" class="step-tab flex-1 min-w-[105px] py-1.5 px-2.5 rounded-lg text-xs font-bold bg-indigo-600 text-white whitespace-nowrap transition">1. 音樂與照片池</button>
-        <button data-step="2" class="step-tab flex-1 min-w-[105px] py-1.5 px-2.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-400 whitespace-nowrap transition">2. 純歌詞與對齊</button>
-        <button data-step="3" class="step-tab flex-1 min-w-[115px] py-1.5 px-2.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-400 whitespace-nowrap transition">3. 預覽與匯出</button>
-      </div>
-    </div>
-  </header>
-
-  <main class="max-w-3xl mx-auto px-3 pt-3">
-    <!-- 步驟 1：音樂與照片池 -->
-    <div id="step1Content" class="step-panel space-y-3">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-white flex items-center space-x-1.5">
-            <span class="w-5 h-5 rounded-full bg-indigo-600 text-[11px] flex items-center justify-center">1</span>
-            <span>上傳歌曲音訊</span>
-          </span>
-          <span id="songDurationTag" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-indigo-300">尚未載入</span>
-        </div>
-
-        <label class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl p-2 cursor-pointer hover:border-indigo-500 transition">
-          <span class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg whitespace-nowrap">選擇檔案</span>
-          <span id="audioFileNameLabel" class="text-xs text-slate-400 truncate flex-1 ml-3">支援 MP3 / M4A / WAV...</span>
-          <input type="file" id="audioFileInput" accept="audio/*" class="hidden">
-        </label>
-
-        <div id="audioPreviewBox" class="hidden bg-slate-950 border border-slate-800/90 rounded-xl p-3 space-y-2">
-          <div class="flex items-center justify-between text-[11px] text-slate-400">
-            <span>🎵 音樂即時試聽與動態波形頻譜</span>
-            <span id="audioPreviewTime" class="font-mono text-indigo-400">00:00 / 00:00</span>
-          </div>
-          <canvas id="spectrumCanvas" width="480" height="54" class="w-full h-12 bg-slate-900/90 rounded-lg border border-slate-800/60"></canvas>
-          <div class="flex items-center space-x-2.5 pt-1">
-            <button id="audioPreviewPlayBtn" class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 shadow">
-              <svg id="audioPlaySvg" class="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-              <svg id="audioPauseSvg" class="w-3.5 h-3.5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-            </button>
-            <input type="range" id="audioPreviewSeek" min="0" max="100" step="0.1" value="0" class="w-full">
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-white flex items-center space-x-1.5">
-            <span class="w-5 h-5 rounded-full bg-indigo-600 text-[11px] flex items-center justify-center">2</span>
-            <span>批次照片池（自動均分歌曲時長）</span>
-          </span>
-          <span id="photoStatBadge" class="text-[11px] text-emerald-400 font-medium">已載入 0 張</span>
-        </div>
-
-        <label class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl p-2 cursor-pointer hover:border-indigo-500 transition">
-          <span class="px-3 py-1.5 bg-slate-800 text-slate-200 text-xs font-bold rounded-lg border border-slate-700 whitespace-nowrap">選擇照片</span>
-          <span id="photoCountInputLabel" class="text-xs text-slate-400 flex-1 ml-3">可一次批次選取數十張照片</span>
-          <input type="file" id="photoFileInput" accept="image/*" multiple class="hidden">
-        </label>
-
-        <div class="space-y-1 pt-1">
-          <label class="text-[11px] text-slate-400">🎬 照片平移縮放運鏡模式 (Ken Burns Effect)</label>
-          <select id="kenBurnsMode" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
-            <option value="alternate" selected>智慧交替運鏡 (放大 / 縮小 / 平移自動切換)</option>
-            <option value="zoomIn">全部緩慢推進放大 (Zoom In)</option>
-            <option value="zoomOut">全部緩慢拉遠縮小 (Zoom Out)</option>
-            <option value="pan">水平柔和漫遊平移 (Smooth Pan)</option>
-            <option value="none">靜態滿版無運鏡 (Static Cover)</option>
-          </select>
-        </div>
-
-        <div id="photoGrid" class="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-44 overflow-y-auto p-1 hidden"></div>
-      </div>
-
-      <button onclick="switchStep(2)" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg transition">下一步：設定歌詞與時間對齊 →</button>
-    </div>
-
-    <!-- 步驟 2：純歌詞與音樂對齊 -->
-    <div id="step2Content" class="step-panel hidden space-y-3">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-3">
-        <div class="flex items-center justify-between flex-wrap gap-2">
-          <span class="text-xs font-bold text-white flex items-center space-x-1.5">
-            <span class="w-5 h-5 rounded-full bg-indigo-600 text-[11px] flex items-center justify-center">3</span>
-            <span>中文歌詞輸入與字幕檔管理</span>
-          </span>
-          <div class="flex items-center space-x-1.5">
-            <label class="px-2.5 py-1 rounded-lg bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 text-[11px] font-semibold cursor-pointer hover:bg-indigo-600/30 transition">
-              📂 匯入 SRT/LRC
-              <input type="file" id="subtitleFileInput" accept=".srt,.lrc,.vtt,.txt" class="hidden">
-            </label>
-            <button id="exportSrtBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700">⬇️ 匯出 SRT</button>
-            <button id="exportLrcBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700">⬇️ 匯出 LRC</button>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-between text-[11px]">
-          <span class="text-slate-400">貼上純中文歌詞 或 既有 SRT/LRC 原始碼</span>
-          <span class="text-emerald-400">時間戳將自動濾除，絕不烙印於畫面上</span>
-        </div>
-
-        <textarea id="lyricTextarea" rows="6" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 font-mono leading-relaxed focus:outline-none focus:border-indigo-500" placeholder="可以直接貼上純文字中文歌詞（免時間戳記）：&#10;5你5我 Ū lí, ū guá&#10;市師八五級的青春拾光&#10;&#10;亦支援直接匯入或貼入帶有時間碼的 SRT/LRC，系統會精準提取時間並在畫面上徹底去除時間碼！"></textarea>
-
-        <button id="smartAlignBtn" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-md transition">✨ 智慧對齊歌詞與音樂時間軸</button>
-
-        <div id="alignedListContainer" class="hidden space-y-1.5 pt-2">
-          <div class="flex justify-between text-[11px] text-emerald-400 font-semibold">
-            <span>✅ 已對齊字幕清單（點擊任一句可跳轉預覽）</span>
-            <span id="alignedCountLabel">0 句</span>
-          </div>
-          <div id="alignedLyricsList" class="max-h-44 overflow-y-auto space-y-1 bg-slate-950 p-2 rounded-xl border border-slate-800 text-xs font-mono"></div>
-        </div>
-      </div>
-
-      <div class="flex space-x-2">
-        <button onclick="switchStep(1)" class="w-1/3 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs">← 上一步</button>
-        <button onclick="switchStep(3)" class="w-2/3 py-3 rounded-xl bg-indigo-600 text-white font-bold text-xs shadow-lg">下一步：預覽與字幕排版 →</button>
-      </div>
-    </div>
-
-    <!-- 步驟 3：即時預覽、字幕自訂與原生 MP4 匯出 -->
-    <div id="step3Content" class="step-panel hidden space-y-3">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-2.5">
-        <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800">
-          <canvas id="mvCanvas" width="1920" height="1080" class="w-full h-full object-contain"></canvas>
-        </div>
-
-        <div class="flex items-center space-x-2.5 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
-          <button id="mvPlayBtn" class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 shadow">
-            <svg id="mvPlayIcon" class="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            <svg id="mvPauseIcon" class="w-3.5 h-3.5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-          </button>
-          <input type="range" id="mvSeekSlider" min="0" max="100" step="0.1" value="0" class="w-full">
-          <span id="mvTimeLabel" class="text-[11px] font-mono text-slate-400 whitespace-nowrap">00:00 / 00:00</span>
-        </div>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-white">🎨 字幕外觀與位置自訂（調整時上方畫面即時變化）</span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2.5">
-          <div class="col-span-2 sm:col-span-1 space-y-1">
-            <label class="text-[11px] text-slate-400">垂直位置</label>
-            <select id="subPosSelect" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200">
-              <option value="0.96" selected>貼齊最底邊 (96% 避開人物臉部)</option>
-              <option value="0.90">經典底部偏下 (90%)</option>
-              <option value="0.82">偏中下位置 (82%)</option>
-              <option value="0.50">畫面正中央 (50%)</option>
-              <option value="0.12">畫面頂部 (12%)</option>
-            </select>
-          </div>
-
-          <div class="col-span-2 sm:col-span-1 space-y-1">
-            <label class="text-[11px] text-slate-400">字體風格</label>
-            <select id="subFontSelect" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200">
-              <option value="sans-serif" selected>現代清晰黑體</option>
-              <option value="serif">優雅文青宋體</option>
-              <option value="cursive">手寫楷書風格</option>
-            </select>
-          </div>
-
-          <div class="space-y-1">
-            <div class="flex justify-between text-[11px]">
-              <span class="text-slate-400">字體大小</span>
-              <span id="subSizeLabel" class="text-indigo-400 font-mono">68px</span>
+    <!-- 鐵律 3：防手機注音鍵盤遮擋 - 頂部置頂浮動面板 (fixed top-0 left-0 right-0 z-50) -->
+    <div id="filenameModal" class="hidden fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md border-b-2 border-emerald-500 shadow-2xl p-4 transition-all">
+        <div class="max-w-2xl mx-auto flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-emerald-400 flex items-center gap-1.5">
+                    ✏️ 設定輸出 MP4 檔案名稱（頂部防鍵盤遮擋模式）
+                </span>
+                <button id="closeFilenameModalBtn" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800">關閉 ✕</button>
             </div>
-            <input type="range" id="subSizeRange" min="36" max="105" value="68" class="w-full">
-          </div>
-
-          <div class="space-y-1">
-            <div class="flex justify-between text-[11px]">
-              <span class="text-slate-400">深黑外框粗細</span>
-              <span id="subStrokeLabel" class="text-indigo-400 font-mono">10px</span>
+            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                <input type="text" id="filenameModalInput" placeholder="請輸入檔案名稱..." 
+                    class="flex-1 min-w-[180px] bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-2 text-white font-bold text-base outline-none">
+                <button id="bringSongTitleBtn" type="button" 
+                    class="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs sm:text-sm font-bold rounded-lg whitespace-nowrap shadow">
+                    🎵 帶入歌名
+                </button>
+                <button id="confirmFilenameBtn" type="button" 
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold rounded-lg whitespace-nowrap shadow">
+                    ✅ 確定
+                </button>
             </div>
-            <input type="range" id="subStrokeRange" min="2" max="22" value="10" class="w-full">
-          </div>
+            <p class="text-[11px] text-slate-400">💡 點擊「立即下載」時將自動於檔名尾端加上當下時分秒（如 <code class="text-emerald-300">檔名_143022.mp4</code>），確保每次檔名唯一，防止瀏覽器跳出重複下載詢問視窗。</p>
         </div>
-
-        <div class="flex items-center justify-between pt-1">
-          <span class="text-[11px] text-slate-400">字幕顏色：</span>
-          <div class="flex items-center space-x-2">
-            <button data-c="#FFFFFF" class="c-swatch w-6 h-6 rounded-full bg-white border-2 border-indigo-500"></button>
-            <button data-c="#FDE047" class="c-swatch w-6 h-6 rounded-full bg-yellow-300 border border-slate-700"></button>
-            <button data-c="#67E8F9" class="c-swatch w-6 h-6 rounded-full bg-cyan-300 border border-slate-700"></button>
-            <button data-c="#F472B6" class="c-swatch w-6 h-6 rounded-full bg-pink-400 border border-slate-700"></button>
-            <button data-c="#A7F3D0" class="c-swatch w-6 h-6 rounded-full bg-emerald-200 border border-slate-700"></button>
-            <input type="color" id="subColorInput" value="#FFFFFF" class="w-6 h-6 rounded border-0 bg-transparent cursor-pointer">
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-3">
-        <div class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl px-3 py-2">
-          <div class="truncate pr-2">
-            <span class="text-[10px] text-slate-400 block">輸出影片檔名（頂部修改，不擋注音鍵盤）</span>
-            <span id="currentFileNameDisplay" class="text-xs font-mono font-bold text-indigo-300">Photo_MV</span>
-          </div>
-          <button id="openTopRenameBtn" class="px-3 py-1.5 bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 rounded-lg text-xs font-bold whitespace-nowrap">✏️ 修改檔名</button>
-        </div>
-
-        <div class="space-y-1">
-          <div class="flex justify-between text-xs">
-            <span class="text-slate-300 font-medium">🔊 輸出影片音量倍增 (防小聲)</span>
-            <span id="volBoostLabel" class="text-emerald-400 font-mono font-bold">190%</span>
-          </div>
-          <input type="range" id="volBoostRange" min="100" max="300" step="10" value="190" class="w-full">
-        </div>
-
-        <div id="renderStatusPanel" class="hidden bg-slate-950 border border-indigo-500/40 rounded-xl p-3 space-y-2">
-          <div class="flex justify-between text-xs">
-            <span id="renderMsg" class="text-indigo-300 font-bold">正在啟動硬體逐幀封裝...</span>
-            <span id="renderPct" class="font-mono text-white">0%</span>
-          </div>
-          <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-            <div id="renderBar" class="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 w-0 transition-all"></div>
-          </div>
-          <p id="renderDetailTxt" class="text-[10px] text-slate-400 font-mono">採用離線絕對時鐘逐幀寫入，秒數 100% 鎖死不膨脹，每 1 秒寫入關鍵影格索引...</p>
-        </div>
-
-        <button id="startRenderBtn" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs shadow-lg transition">🎬 開始合成 1080P 高畫質 MV (原生 MP4 封裝)</button>
-
-        <div id="exportSuccessPanel" class="hidden bg-emerald-950/30 border border-emerald-500/40 rounded-xl p-4 text-center space-y-2.5">
-          <div class="text-xs font-bold text-emerald-300">✅ 1080P 原生 MP4 影片封裝完成！</div>
-          <p id="exportSummaryInfo" class="text-[11px] text-slate-300">已寫入標準 ISO-BMFF (moov/stss) 關鍵影格索引表，相簿與下載項目總秒數 100% 精準，任意快轉倒退瞬間咬合不回彈！</p>
-          <button id="singleDownloadBtn" class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg transition">
-            ⬇️ 立即下載影片 (<span id="dlBtnFileName">Photo_MV.mp4</span>)
-          </button>
-        </div>
-      </div>
     </div>
-  </main>
 
-  <script>
-    const app = {
-      audioFile: null, audioUrl: null, audioBuffer: null, duration: 0,
-      songBaseName: 'Photo_MV', customName: 'Photo_MV',
-      photos: [], lyrics: [], subColor: '#FFFFFF',
-      isRendering: false, finalBlob: null
-    };
+    <!-- 頂部導覽列 -->
+    <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-purple-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 font-black text-xl">
+                    🎬
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-black tracking-tight bg-gradient-to-r from-emerald-400 via-teal-200 to-purple-400 bg-clip-text text-transparent">
+                        AI 照片音樂 MV 工作站
+                    </h1>
+                    <p class="text-[11px] text-slate-400">WebCodecs 1080P 30FPS 離線精準算圖引擎 · 支援關鍵影格秒數鎖定</p>
+                </div>
+            </div>
 
-    function switchStep(stepNum) {
-      document.querySelectorAll('.step-panel').forEach((el, idx) => {
-        el.classList.toggle('hidden', idx + 1 !== stepNum);
-      });
-      document.querySelectorAll('.step-tab').forEach((btn) => {
-        const s = parseInt(btn.dataset.step);
-        btn.className = s === stepNum
-          ? 'step-tab flex-1 min-w-[105px] py-1.5 px-2.5 rounded-lg text-xs font-bold bg-indigo-600 text-white whitespace-nowrap transition'
-          : 'step-tab flex-1 min-w-[105px] py-1.5 px-2.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-400 whitespace-nowrap transition';
-      });
-      drawMvFrame(previewAudio.currentTime || 0);
-    }
-    document.querySelectorAll('.step-tab').forEach(btn => {
-      btn.addEventListener('click', () => switchStep(parseInt(btn.dataset.step)));
-    });
+            <!-- 3 個步驟頁籤 -->
+            <nav class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto justify-between sm:justify-start">
+                <button onclick="switchTab(1)" id="tabBtn1" class="tab-active flex-1 sm:flex-initial px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5">
+                    <span>1️⃣</span> 音樂與照片池
+                </button>
+                <button onclick="switchTab(2)" id="tabBtn2" class="text-slate-400 hover:text-white flex-1 sm:flex-initial px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5">
+                    <span>2️⃣</span> 純歌詞與對齊
+                </button>
+                <button onclick="switchTab(3)" id="tabBtn3" class="text-slate-400 hover:text-white flex-1 sm:flex-initial px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5">
+                    <span>3️⃣</span> 預覽與匯出
+                </button>
+            </nav>
+        </div>
+    </header>
 
-    function fmtTime(sec) {
-      if (!isFinite(sec) || sec < 0) sec = 0;
-      const m = Math.floor(sec / 60);
-      const s = Math.floor(sec % 60);
-      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    }
+    <!-- 主內容區 -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
 
-    const topRenameModal = document.getElementById('topRenameModal');
-    const topModalFileNameInput = document.getElementById('topModalFileNameInput');
-    const currentFileNameDisplay = document.getElementById('currentFileNameDisplay');
-    const dlBtnFileName = document.getElementById('dlBtnFileName');
+        <!-- ==================== 步驟 1：音樂與照片池 ==================== -->
+        <section id="step1" class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- 左側：音樂上傳與動態頻譜 -->
+                <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-xl">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-base font-bold text-emerald-400 flex items-center gap-2">
+                                🎵 步驟 1-A：上傳背景音樂
+                            </h2>
+                            <span id="audioDurationBadge" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full font-mono">
+                                尚未載入音訊
+                            </span>
+                        </div>
 
-    function syncFileNameUI(name) {
-      const clean = (name || 'Photo_MV').replace(/\.(mp4|webm)$/i, '').trim() || 'Photo_MV';
-      app.customName = clean;
-      currentFileNameDisplay.textContent = clean;
-      dlBtnFileName.textContent = `${clean}.mp4`;
-    }
+                        <label class="block w-full cursor-pointer">
+                            <input type="file" id="audioInput" accept="audio/*" class="hidden">
+                            <div class="border-2 border-dashed border-slate-700 hover:border-emerald-500 bg-slate-950/60 rounded-xl p-4 text-center transition group">
+                                <div class="text-2xl mb-1 group-hover:scale-110 transition">🎧</div>
+                                <p id="audioFileName" class="text-sm font-bold text-slate-200 truncate">點擊選擇音樂檔案 (.mp3 / .wav / .m4a / .ogg)</p>
+                                <p class="text-xs text-slate-400 mt-1">上傳後自動解析精確秒數並均分照片時長</p>
+                            </div>
+                        </label>
 
-    document.getElementById('openTopRenameBtn').addEventListener('click', () => {
-      topModalFileNameInput.value = app.customName;
-      topRenameModal.classList.remove('hidden');
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      setTimeout(() => topModalFileNameInput.focus(), 50);
-    });
+                        <!-- 獨立試聽播放器 + 綠紫雙色動態跳動頻譜 Canvas -->
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-3">
+                            <div class="flex items-center justify-between text-xs text-slate-400">
+                                <span>📊 Web Audio 綠紫雙色動態頻譜</span>
+                                <span id="step1TimeText" class="font-mono text-emerald-400 font-bold">00:00.0 / 00:00.0</span>
+                            </div>
+                            <canvas id="spectrumCanvas" width="460" height="90" class="w-full h-24 bg-slate-900/90 rounded-lg border border-slate-800/80"></canvas>
+                            
+                            <div class="flex items-center gap-3 pt-1">
+                                <button id="step1PlayBtn" disabled class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold text-xs flex items-center gap-1.5 transition">
+                                    ▶ 播放試聽
+                                </button>
+                                <input type="range" id="step1SeekSlider" min="0" max="100" step="0.05" value="0" disabled class="flex-1 h-2 bg-slate-800 rounded-lg cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
 
-    document.getElementById('closeRenameModalBtn').addEventListener('click', () => {
-      syncFileNameUI(topModalFileNameInput.value);
-      topRenameModal.classList.add('hidden');
-    });
+                    <!-- Ken Burns 運鏡模式選單 -->
+                    <div class="pt-3 border-t border-slate-800 space-y-2">
+                        <label for="kenBurnsMode" class="block text-sm font-bold text-purple-400">
+                            🎥 5 種 Ken Burns 電影級運鏡模式
+                        </label>
+                        <select id="kenBurnsMode" class="w-full bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-semibold outline-none">
+                            <option value="smart">✨ 智慧交替（奇數張緩慢放大、偶數張緩慢縮小 + 微平移）</option>
+                            <option value="zoomIn">🔍 全部放大（全體緩慢拉近聚焦）</option>
+                            <option value="zoomOut">🖼️ 全部縮小（全體由特寫緩慢拉遠）</option>
+                            <option value="pan">↔️ 水平平移（左右絲滑橫移運鏡）</option>
+                            <option value="static">⏹️ 靜態滿版（無縮放平移，居中裁切填滿）</option>
+                        </select>
+                    </div>
+                </div>
 
-    document.getElementById('useSongNameBtn').addEventListener('click', () => {
-      topModalFileNameInput.value = app.songBaseName;
-      syncFileNameUI(app.songBaseName);
-    });
+                <!-- 右側：批次照片池 -->
+                <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-xl">
+                    <div class="space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <h2 class="text-base font-bold text-emerald-400 flex items-center gap-2">
+                                    🖼️ 步驟 1-B：批次照片池（自動均分歌曲時長）
+                                </h2>
+                                <p id="photoAllocationInfo" class="text-xs text-slate-400 mt-0.5">
+                                    請先加入照片（支援一次選取多張 JPG/PNG/WebP）
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="cursor-pointer px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition">
+                                    <span>➕ 批次新增照片</span>
+                                    <input type="file" id="photoInput" accept="image/*" multiple class="hidden">
+                                </label>
+                                <button id="clearPhotosBtn" class="px-3 py-2 bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition">
+                                    🗑️ 清空
+                                </button>
+                            </div>
+                        </div>
 
-    const previewAudio = new Audio();
-    let audioCtx = null, analyser = null, sourceNode = null, spectrumRaf = null;
-    const spectrumCanvas = document.getElementById('spectrumCanvas');
-    const sCtx = spectrumCanvas.getContext('2d');
+                        <!-- 照片縮圖網格 -->
+                        <div id="photoGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[380px] overflow-y-auto p-2 bg-slate-950/70 rounded-xl border border-slate-800 min-h-[240px]">
+                            <div class="col-span-full flex flex-col items-center justify-center text-slate-500 py-16">
+                                <div class="text-4xl mb-2">📸</div>
+                                <p class="text-sm font-semibold">尚無照片，請點擊右上角「批次新增照片」</p>
+                                <p class="text-xs mt-1">系統將依音樂總長度自動為每張照片分配顯示區間</p>
+                            </div>
+                        </div>
+                    </div>
 
-    function drawSpectrum() {
-      if (!analyser || previewAudio.paused) return;
-      spectrumRaf = requestAnimationFrame(drawSpectrum);
-      const bufferLen = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLen);
-      analyser.getByteFrequencyData(dataArray);
-      sCtx.fillStyle = '#090d16';
-      sCtx.fillRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
-      const barCount = 44;
-      const barWidth = (spectrumCanvas.width / barCount) - 2;
-      for (let i = 0; i < barCount; i++) {
-        const val = dataArray[i * 2] || 4;
-        const barHeight = Math.max(4, (val / 255) * spectrumCanvas.height);
-        const x = i * (barWidth + 2);
-        const y = spectrumCanvas.height - barHeight;
-        const grad = sCtx.createLinearGradient(0, y, 0, spectrumCanvas.height);
-        grad.addColorStop(0, '#34d399');
-        grad.addColorStop(1, '#6366f1');
-        sCtx.fillStyle = grad;
-        sCtx.fillRect(x, y, barWidth, barHeight);
-      }
-    }
+                    <div class="flex items-center justify-end pt-2 border-t border-slate-800">
+                        <button onclick="switchTab(2)" class="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition flex items-center gap-2">
+                            下一步：設定歌詞與時間對齊 ➔
+                        </button>
+                    </div>
+                </div>
 
-    document.getElementById('audioFileInput').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      app.audioFile = file;
-      app.songBaseName = file.name.replace(/\.[^/.]+$/, '');
-      syncFileNameUI(app.songBaseName);
-      document.getElementById('audioFileNameLabel').textContent = file.name;
-      if (app.audioUrl) URL.revokeObjectURL(app.audioUrl);
-      app.audioUrl = URL.createObjectURL(file);
-      previewAudio.src = app.audioUrl;
+            </div>
+        </section>
 
-      const ab = await file.arrayBuffer();
-      const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
-      app.audioBuffer = await tempCtx.decodeAudioData(ab);
-      app.duration = app.audioBuffer.duration;
-      await tempCtx.close();
+        <!-- ==================== 步驟 2：純歌詞與對齊 ==================== -->
+        <section id="step2" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- 左側：純歌詞或時間碼貼上區 -->
+                <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col space-y-4 shadow-xl">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h2 class="text-base font-bold text-emerald-400">📝 歌詞編輯與字幕匯入/匯出</h2>
+                            <p class="text-xs text-slate-400">支援貼上純歌詞（依字數加權自動分配時間）或含時間碼字幕（自動解析並隱藏時間碼）</p>
+                        </div>
+                    </div>
 
-      document.getElementById('songDurationTag').textContent = fmtTime(app.duration);
-      document.getElementById('audioPreviewBox').classList.remove('hidden');
-      document.getElementById('audioPreviewTime').textContent = `00:00 / ${fmtTime(app.duration)}`;
-      document.getElementById('mvTimeLabel').textContent = `00:00 / ${fmtTime(app.duration)}`;
-      updatePhotoBadge();
-      if (document.getElementById('lyricTextarea').value.trim()) alignLyricsNow();
-      drawMvFrame(0);
-    });
+                    <!-- 三顆指定按鈕：匯入 SRT/LRC、匯出 SRT、匯出 LRC -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label class="cursor-pointer px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
+                            <span>📂 匯入 SRT/LRC (.srt/.lrc/.vtt/.txt)</span>
+                            <input type="file" id="subtitleFileInput" accept=".srt,.lrc,.vtt,.txt" class="hidden">
+                        </label>
+                        <button id="exportSrtBtn" type="button" class="px-3.5 py-2 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white font-bold text-xs rounded-xl border border-slate-700 transition">
+                            ⬇️ 匯出 SRT
+                        </button>
+                        <button id="exportLrcBtn" type="button" class="px-3.5 py-2 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white font-bold text-xs rounded-xl border border-slate-700 transition">
+                            ⬇️ 匯出 LRC
+                        </button>
+                    </div>
 
-    document.getElementById('audioPreviewPlayBtn').addEventListener('click', async () => {
-      if (!app.audioUrl) return;
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 256;
-        sourceNode = audioCtx.createMediaElementSource(previewAudio);
-        sourceNode.connect(analyser);
-        analyser.connect(audioCtx.destination);
-      }
-      if (audioCtx.state === 'suspended') await audioCtx.resume();
-      if (previewAudio.paused) {
-        previewAudio.play();
-        document.getElementById('audioPlaySvg').classList.add('hidden');
-        document.getElementById('audioPauseSvg').classList.remove('hidden');
-        document.getElementById('mvPlayIcon').classList.add('hidden');
-        document.getElementById('mvPauseIcon').classList.remove('hidden');
-        drawSpectrum();
-      } else {
-        previewAudio.pause();
-        document.getElementById('audioPlaySvg').classList.remove('hidden');
-        document.getElementById('audioPauseSvg').classList.add('hidden');
-        document.getElementById('mvPlayIcon').classList.remove('hidden');
-        document.getElementById('mvPauseIcon').classList.add('hidden');
-        cancelAnimationFrame(spectrumRaf);
-      }
-    });
+                    <textarea id="lyricsTextarea" rows="12" placeholder="在此貼上純歌詞（每行一句），或直接貼上帶有 [00:12.34] / 00:00:12,340 --> 00:00:15,000 的歌詞...&#10;&#10;範例純歌詞：&#10;陽光灑在熟悉的操場&#10;我們一起大聲歌唱&#10;三六水啦 夢想啟航"
+                        class="w-full flex-1 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl p-3.5 text-sm text-slate-100 font-mono leading-relaxed outline-none resize-none"></textarea>
 
-    previewAudio.addEventListener('timeupdate', () => {
-      const cur = previewAudio.currentTime;
-      const pct = app.duration > 0 ? (cur / app.duration) * 100 : 0;
-      document.getElementById('audioPreviewSeek').value = pct;
-      document.getElementById('mvSeekSlider').value = pct;
-      const tStr = `${fmtTime(cur)} / ${fmtTime(app.duration)}`;
-      document.getElementById('audioPreviewTime').textContent = tStr;
-      document.getElementById('mvTimeLabel').textContent = tStr;
-      drawMvFrame(cur);
-    });
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <span class="text-xs text-slate-400">💡 系統會自動濾除畫面上的時間碼，僅保留純淨歌詞字幕</span>
+                        <button id="parseLyricsBtn" type="button" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow transition">
+                            ⚡ 解析歌詞 / 依字數加權重新分配時間
+                        </button>
+                    </div>
+                </div>
 
-    document.getElementById('audioPreviewSeek').addEventListener('input', (e) => {
-      if (app.duration > 0) {
-        previewAudio.currentTime = (e.target.value / 100) * app.duration;
-        drawMvFrame(previewAudio.currentTime);
-      }
-    });
+                <!-- 右側：時間軸對齊清單（點擊可跳轉預覽） -->
+                <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-xl">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-base font-bold text-purple-400">⏱️ 字幕時間對齊清單（點擊行可跳轉預覽）</h2>
+                                <p class="text-xs text-slate-400">可直接微調每句開始/結束秒數，或點擊任意行立即試聽該段時間點</p>
+                            </div>
+                            <span id="subtitleCountBadge" class="text-xs bg-slate-800 text-emerald-400 px-2.5 py-1 rounded-full font-bold">
+                                0 句字幕
+                            </span>
+                        </div>
 
-    function updatePhotoBadge() {
-      const cnt = app.photos.length;
-      const perSec = (cnt > 0 && app.duration > 0) ? (app.duration / cnt).toFixed(1) : 0;
-      document.getElementById('photoStatBadge').textContent = cnt > 0
-        ? `已載入 ${cnt} 張 ${perSec > 0 ? `(每張均分 ${perSec}s)` : ''}`
-        : '已載入 0 張';
-      document.getElementById('photoCountInputLabel').textContent = cnt > 0 ? `目前已載入 ${cnt} 張照片（可繼續新增）` : '可一次批次選取數十張照片';
-    }
+                        <div id="subtitleListContainer" class="max-h-[380px] overflow-y-auto space-y-2 pr-1 bg-slate-950/60 p-3 rounded-xl border border-slate-800 min-h-[300px]">
+                            <div class="text-center text-slate-500 py-20 text-sm">
+                                尚未建立字幕清單，請於左側輸入歌詞或匯入字幕檔
+                            </div>
+                        </div>
+                    </div>
 
-    function renderPhotoThumbnails() {
-      const grid = document.getElementById('photoGrid');
-      grid.innerHTML = '';
-      if (app.photos.length === 0) {
-        grid.classList.add('hidden');
-        return;
-      }
-      grid.classList.remove('hidden');
-      app.photos.forEach((item, idx) => {
-        const wrap = document.createElement('div');
-        wrap.className = 'relative aspect-video bg-slate-950 rounded-lg overflow-hidden border border-slate-800';
-        wrap.innerHTML = `
-          <img src="${item.url}" class="w-full h-full object-cover">
-          <button data-idx="${idx}" class="del-photo absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center shadow">×</button>
-        `;
-        grid.appendChild(wrap);
-      });
-      grid.querySelectorAll('.del-photo').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const i = parseInt(btn.dataset.idx);
-          app.photos.splice(i, 1);
-          renderPhotoThumbnails();
-          updatePhotoBadge();
-          drawMvFrame(previewAudio.currentTime || 0);
-        });
-      });
-    }
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+                        <button onclick="switchTab(1)" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm rounded-xl transition">
+                            ⬅ 返回步驟 1
+                        </button>
+                        <button onclick="switchTab(3)" class="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg transition">
+                            下一步：1080P 預覽與匯出 ➔
+                        </button>
+                    </div>
+                </div>
 
-    document.getElementById('photoFileInput').addEventListener('change', async (e) => {
-      const files = Array.from(e.target.files);
-      for (const f of files) {
-        const url = URL.createObjectURL(f);
-        const img = new Image();
-        img.src = url;
-        await new Promise(r => { img.onload = r; img.onerror = r; });
-        app.photos.push({ img, url });
-      }
-      renderPhotoThumbnails();
-      updatePhotoBadge();
-      drawMvFrame(previewAudio.currentTime || 0);
-    });
+            </div>
+        </section>
 
-    document.getElementById('subtitleFileInput').addEventListener('change', async (e) => {
-      const f = e.target.files[0];
-      if (!f) return;
-      const text = await f.text();
-      document.getElementById('lyricTextarea').value = text;
-      alignLyricsNow();
-    });
+        <!-- ==================== 步驟 3：預覽與匯出 ==================== -->
+        <section id="step3" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-    function alignLyricsNow() {
-      const raw = document.getElementById('lyricTextarea').value.trim();
-      if (!raw) return;
-      const totalDur = app.duration > 0 ? app.duration : 218;
-      const lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-      const srtRe = /(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/;
-      const lrcRe = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]/;
-      const result = [];
+                <!-- 上方/左側：1920x1080 滿版畫布即時預覽 -->
+                <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md text-xs font-bold">
+                                1920 × 1080 Full HD
+                            </span>
+                            <h2 class="text-sm sm:text-base font-bold text-slate-100">即時滿版畫布預覽</h2>
+                        </div>
+                        <span id="previewTimeDisplay" class="font-mono text-xs sm:text-sm text-emerald-400 font-bold">
+                            00:00.0 / 00:00.0
+                        </span>
+                    </div>
 
-      for (let i = 0; i < lines.length; i++) {
-        const m = lines[i].match(srtRe);
-        if (m) {
-          const st = (+m[1])*3600 + (+m[2])*60 + (+m[3]) + (+m[4])/1000;
-          const et = (+m[5])*3600 + (+m[6])*60 + (+m[7]) + (+m[8])/1000;
-          const textLines = [];
-          let j = i + 1;
-          while (j < lines.length && !lines[j].match(srtRe) && isNaN(lines[j])) {
-            textLines.push(lines[j]);
-            j++;
-          }
-          const txt = textLines.join(' ').trim();
-          if (txt) result.push({ start: st, end: et, text: txt });
-        }
-      }
+                    <!-- 1920x1080 畫布 -->
+                    <div class="canvas-aspect bg-black rounded-xl overflow-hidden border border-slate-800 shadow-2xl relative">
+                        <canvas id="mvCanvas" width="1920" height="1080" class="w-full h-full block"></canvas>
+                    </div>
 
-      if (result.length === 0) {
-        const tempLrc = [];
-        for (const l of lines) {
-          const m = l.match(lrcRe);
-          if (m) {
-            const st = (+m[1])*60 + (+m[2]) + (m[3] ? (+m[3].padEnd(3, '0'))/1000 : 0);
-            const txt = l.replace(/\[.*?\]/g, '').trim();
-            if (txt) tempLrc.push({ start: st, text: txt });
-          }
-        }
-        if (tempLrc.length > 0) {
-          for (let i = 0; i < tempLrc.length; i++) {
-            const st = tempLrc[i].start;
-            const et = (i + 1 < tempLrc.length) ? tempLrc[i+1].start : Math.min(totalDur, st + 5);
-            result.push({ start: st, end: et, text: tempLrc[i].text });
-          }
-        }
-      }
+                    <!-- 預覽播放控制列 -->
+                    <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <button id="previewPlayBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-lg transition whitespace-nowrap">
+                            ▶ 播放預覽
+                        </button>
+                        <input type="range" id="previewSeekSlider" min="0" max="100" step="0.03" value="0" class="flex-1 h-2 bg-slate-800 rounded-lg cursor-pointer">
+                    </div>
 
-      if (result.length === 0) {
-        const cleanLines = lines
-          .map(l => l.replace(/\[.*?\]/g, '').replace(/\d{2}:\d{2}(:\d{2})?([,.]\d{1,3})?/g, '').replace(/-->/g, '').trim())
-          .filter(l => l && isNaN(l));
-        const usable = Math.max(10, totalDur - 3);
-        const weights = cleanLines.map(l => Math.max(2, l.length));
-        const sumW = weights.reduce((a, b) => a + b, 0);
-        let cur = 1.5;
-        cleanLines.forEach((txt, idx) => {
-          const span = (weights[idx] / sumW) * usable;
-          result.push({ start: cur, end: cur + span, text: txt });
-          cur += span;
-        });
-      }
+                    <!-- 匯出與檔名設定面板 -->
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div class="space-y-0.5">
+                                <div class="text-xs text-slate-400">目前輸出檔案名稱設定：</div>
+                                <div class="flex items-center gap-2">
+                                    <span id="currentFilenameLabel" class="text-sm sm:text-base font-black text-emerald-400 break-all">AI_音樂MV作品</span>
+                                    <span class="text-xs text-slate-500 font-mono">_時分秒.mp4</span>
+                                </div>
+                            </div>
+                            <button id="openFilenameModalBtn" type="button" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+                                ✏️ 修改檔名（頂部防遮擋面板）
+                            </button>
+                        </div>
 
-      app.lyrics = result;
-      const listEl = document.getElementById('alignedLyricsList');
-      listEl.innerHTML = '';
-      result.forEach((item) => {
-        const row = document.createElement('div');
-        row.className = 'flex justify-between items-center px-2.5 py-1.5 rounded bg-slate-900 hover:bg-slate-800 cursor-pointer border border-slate-800/60';
-        row.innerHTML = `<span class="text-indigo-400">[${fmtTime(item.start)}]</span><span class="text-slate-200 truncate mx-2 flex-1">${item.text}</span><span class="text-slate-500">${(item.end - item.start).toFixed(1)}s</span>`;
-        row.addEventListener('click', () => {
-          previewAudio.currentTime = item.start + 0.05;
-          drawMvFrame(previewAudio.currentTime);
-        });
-        listEl.appendChild(row);
-      });
-      document.getElementById('alignedCountLabel').textContent = `${result.length} 句`;
-      document.getElementById('alignedListContainer').classList.remove('hidden');
-      drawMvFrame(previewAudio.currentTime || 0);
-    }
+                        <!-- 算圖進度條 -->
+                        <div id="renderProgressBox" class="hidden space-y-2 pt-2 border-t border-slate-800">
+                            <div class="flex items-center justify-between text-xs">
+                                <span id="renderStatusText" class="text-emerald-400 font-bold">正在啟動 WebCodecs 30FPS 離線逐幀算圖...</span>
+                                <span id="renderPercentText" class="font-mono font-bold text-white">0%</span>
+                            </div>
+                            <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                                <div id="renderProgressBar" class="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-purple-500 w-0 transition-all duration-150"></div>
+                            </div>
+                        </div>
 
-    document.getElementById('smartAlignBtn').addEventListener('click', alignLyricsNow);
+                        <!-- 合成與立即下載按鈕區（鐵律 4：合成完成絕不自動下載，點擊立即下載才動態附加當下時分秒） -->
+                        <div class="flex flex-wrap items-center gap-3 pt-1">
+                            <button id="startRenderBtn" type="button" class="flex-1 min-w-[200px] py-3 px-5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-sm sm:text-base rounded-xl shadow-lg shadow-emerald-600/25 transition flex items-center justify-center gap-2">
+                                🚀 開始合成 1080P MP4 影片
+                            </button>
+                            <button id="manualDownloadBtn" type="button" class="hidden flex-1 min-w-[200px] py-3 px-5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-sm sm:text-base rounded-xl shadow-lg shadow-purple-600/30 transition flex items-center justify-center gap-2">
+                                💾 立即下載 MP4（自動附加時分秒）
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
-    document.getElementById('exportSrtBtn').addEventListener('click', () => {
-      if (!app.lyrics.length) alignLyricsNow();
-      if (!app.lyrics.length) return alert('請先輸入或匯入歌詞！');
-      const toSrt = (sec) => {
-        const h = String(Math.floor(sec/3600)).padStart(2,'0');
-        const m = String(Math.floor((sec%3600)/60)).padStart(2,'0');
-        const s = String(Math.floor(sec%60)).padStart(2,'0');
-        const ms = String(Math.floor((sec%1)*1000)).padStart(3,'0');
-        return `${h}:${m}:${s},${ms}`;
-      };
-      const out = app.lyrics.map((l, i) => `${i+1}\n${toSrt(l.start)} --> ${toSrt(l.end)}\n${l.text}\n`).join('\n');
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([out], { type: 'text/plain;charset=utf-8' }));
-      a.download = `${app.customName}.srt`;
-      a.click();
-    });
+                <!-- 下方/右側：同畫面調整字幕垂直位置、字體、大小、外框、色盤、音量倍增 -->
+                <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5 shadow-xl">
+                    <h2 class="text-base font-bold text-emerald-400 border-b border-slate-800 pb-2.5">
+                        🎨 字幕樣式與音效強化控制台（即時預覽）
+                    </h2>
 
-    document.getElementById('exportLrcBtn').addEventListener('click', () => {
-      if (!app.lyrics.length) alignLyricsNow();
-      if (!app.lyrics.length) return alert('請先輸入或匯入歌詞！');
-      const out = app.lyrics.map(l => {
-        const m = String(Math.floor(l.start/60)).padStart(2,'0');
-        const s = (l.start%60).toFixed(2).padStart(5,'0');
-        return `[${m}:${s}]${l.text}`;
-      }).join('\n');
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([out], { type: 'text/plain;charset=utf-8' }));
-      a.download = `${app.customName}.lrc`;
-      a.click();
-    });
+                    <!-- 字幕垂直位置（預設「貼齊最底邊 96%」避開人臉、90%、82%、50%、12%） -->
+                    <div class="space-y-1.5">
+                        <label for="subPosY" class="block text-xs font-bold text-slate-300">
+                            📍 字幕垂直位置（預設貼齊最底邊 96% 避開人臉）
+                        </label>
+                        <select id="subPosY" class="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none">
+                            <option value="0.96" selected>⬇️ 貼齊最底邊 96%（極致避開人臉 · 預設）</option>
+                            <option value="0.90">🔽 底部經典區 90%</option>
+                            <option value="0.82">🔉 中下舒適區 82%</option>
+                            <option value="0.50">⏺️ 畫面正中央 50%</option>
+                            <option value="0.12">⬆️ 頂部標題區 12%</option>
+                        </select>
+                    </div>
 
-    const mvCanvas = document.getElementById('mvCanvas');
-    const ctx = mvCanvas.getContext('2d', { alpha: false });
+                    <!-- 字體風格 -->
+                    <div class="space-y-1.5">
+                        <label for="subFontFamily" class="block text-xs font-bold text-slate-300">
+                            🔤 字體風格
+                        </label>
+                        <select id="subFontFamily" class="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-xl px-3 py-2 text-sm text-white font-bold outline-none">
+                            <option value="'Noto Sans TC', 'Microsoft JhengHei', sans-serif">思源黑體 / 微軟正黑體（現代清晰）</option>
+                            <option value="'Noto Serif TC', 'PMingLiU', serif">思源宋體 / 明體（文青抒情）</option>
+                            <option value="'DFKai-SB', 'BiauKai', 'Noto Serif TC', serif">標楷體（書法人文）</option>
+                            <option value="system-ui, -apple-system, sans-serif">系統圓體 / 無襯線粗體</option>
+                        </select>
+                    </div>
 
-    function drawMvFrame(t) {
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, 1920, 1080);
+                    <!-- 字體大小 & 深黑外框粗細 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5">
+                            <div class="flex justify-between text-xs font-bold">
+                                <span class="text-slate-300">🔠 字體大小</span>
+                                <span id="subFontSizeVal" class="text-emerald-400 font-mono">64px</span>
+                            </div>
+                            <input type="range" id="subFontSize" min="36" max="110" step="2" value="64" class="w-full">
+                        </div>
 
-      if (app.photos.length > 0) {
-        const total = Math.max(app.duration, 10);
-        const seg = total / app.photos.length;
-        const idx = Math.min(app.photos.length - 1, Math.max(0, Math.floor(t / seg)));
-        const pProg = Math.max(0, Math.min(1, (t - idx * seg) / seg));
-        const img = app.photos[idx].img;
+                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5">
+                            <div class="flex justify-between text-xs font-bold">
+                                <span class="text-slate-300">🖤 深黑外框粗細</span>
+                                <span id="subOutlineWidthVal" class="text-emerald-400 font-mono">10px</span>
+                            </div>
+                            <input type="range" id="subOutlineWidth" min="0" max="24" step="1" value="10" class="w-full">
+                        </div>
+                    </div>
 
-        const mode = document.getElementById('kenBurnsMode').value;
-        let scale = 1.0, panX = 0;
+                    <!-- 多色快捷色盤與自訂選色器 -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-300">🌈 字幕顏色（多色快捷色盤 & 自訂選色器）</span>
+                            <span id="subColorHexLabel" class="text-xs font-mono text-emerald-400">#FFFFFF</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                            <button type="button" onclick="setSubtitleColor('#FFFFFF')" class="w-7 h-7 rounded-full bg-white border-2 border-slate-500 hover:scale-110 transition" title="純白"></button>
+                            <button type="button" onclick="setSubtitleColor('#FACC15')" class="w-7 h-7 rounded-full bg-yellow-400 border-2 border-slate-700 hover:scale-110 transition" title="亮金黃"></button>
+                            <button type="button" onclick="setSubtitleColor('#34D399')" class="w-7 h-7 rounded-full bg-emerald-400 border-2 border-slate-700 hover:scale-110 transition" title="翠綠"></button>
+                            <button type="button" onclick="setSubtitleColor('#38BDF8')" class="w-7 h-7 rounded-full bg-sky-400 border-2 border-slate-700 hover:scale-110 transition" title="天藍"></button>
+                            <button type="button" onclick="setSubtitleColor('#F472B6')" class="w-7 h-7 rounded-full bg-pink-400 border-2 border-slate-700 hover:scale-110 transition" title="粉紅"></button>
+                            <button type="button" onclick="setSubtitleColor('#C084FC')" class="w-7 h-7 rounded-full bg-purple-400 border-2 border-slate-700 hover:scale-110 transition" title="薰衣草紫"></button>
+                            <button type="button" onclick="setSubtitleColor('#FB923C')" class="w-7 h-7 rounded-full bg-orange-400 border-2 border-slate-700 hover:scale-110 transition" title="活力橘"></button>
+                            
+                            <div class="ml-auto flex items-center gap-1.5 pl-2 border-l border-slate-800">
+                                <label for="subCustomColor" class="text-xs text-slate-400 cursor-pointer">自訂：</label>
+                                <input type="color" id="subCustomColor" value="#FFFFFF" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0">
+                            </div>
+                        </div>
+                    </div>
 
-        if (mode === 'zoomIn' || (mode === 'alternate' && idx % 3 === 0)) {
-          scale = 1.02 + pProg * 0.10;
-        } else if (mode === 'zoomOut' || (mode === 'alternate' && idx % 3 === 1)) {
-          scale = 1.12 - pProg * 0.10;
-        } else if (mode === 'pan' || (mode === 'alternate' && idx % 3 === 2)) {
-          scale = 1.08;
-          panX = (pProg - 0.5) * 65;
-        }
+                    <!-- 音量倍增滑桿（100%~300%，採用 Math.tanh 防爆音軟削波） -->
+                    <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-purple-400">🔊 音量倍增滑桿（內建 Math.tanh 防爆音軟削波）</span>
+                            <span id="volumeBoostVal" class="text-xs font-mono font-bold text-emerald-400">100%</span>
+                        </div>
+                        <input type="range" id="volumeBoostSlider" min="100" max="300" step="5" value="100" class="w-full">
+                        <p class="text-[11px] text-slate-400">
+                            支援 100% ~ 300% 增益放大；超過 100% 時自動啟用 <code class="text-purple-300">Math.tanh</code> 軟削波演算法，提升響度同時防止破音失真。
+                        </p>
+                    </div>
+                </div>
 
-        const cRatio = 1920 / 1080;
-        const iRatio = img.width / img.height;
-        let dw, dh;
-        if (iRatio > cRatio) {
-          dh = 1080 * scale;
-          dw = dh * iRatio;
-        } else {
-          dw = 1920 * scale;
-          dh = dw / iRatio;
-        }
-        const dx = (1920 - dw) / 2 + panX;
-        const dy = (1080 - dh) / 2;
-        ctx.drawImage(img, dx, dy, dw, dh);
-      }
+            </div>
+        </section>
 
-      const activeSub = app.lyrics.find(l => t >= l.start && t <= l.end);
-      if (activeSub && activeSub.text) {
-        const yRatio = parseFloat(document.getElementById('subPosSelect').value);
-        const fontName = document.getElementById('subFontSelect').value;
-        const fontSize = parseInt(document.getElementById('subSizeRange').value);
-        const strokeW = parseInt(document.getElementById('subStrokeRange').value);
+    </main>
 
-        ctx.save();
-        ctx.font = `bold ${fontSize}px ${fontName}`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        const x = 960, y = 1080 * yRatio;
-        ctx.lineJoin = 'round';
-        ctx.lineWidth = strokeW;
-        ctx.strokeStyle = 'rgba(0,0,0,0.94)';
-        ctx.strokeText(activeSub.text, x, y);
-        ctx.fillStyle = app.subColor;
-        ctx.fillText(activeSub.text, x, y);
-        ctx.restore();
-      }
-    }
+    <!-- 隱藏的共用 Audio 元素 -->
+    <audio id="mainAudio" crossorigin="anonymous" class="hidden"></audio>
 
-    document.getElementById('mvPlayBtn').addEventListener('click', () => {
-      document.getElementById('audioPreviewPlayBtn').click();
-    });
+    <script>
+        // ==================== 全域狀態管理 ====================
+        const state = {
+            audioFile: null,
+            audioBuffer: null,
+            audioDuration: 0,
+            songTitle: 'AI_音樂MV作品',
+            exportBaseName: 'AI_音樂MV作品',
+            photos: [], // { id, file, url, img }
+            subtitles: [], // { start, end, text }
+            kenBurnsMode: 'smart',
+            subStyle: {
+                posY: 0.96, // 預設貼齊最底邊 96%
+                fontFamily: "'Noto Sans TC', 'Microsoft JhengHei', sans-serif",
+                fontSize: 64,
+                outlineWidth: 10,
+                color: '#FFFFFF'
+            },
+            volumeBoost: 1.0, // 1.0 ~ 3.0
+            renderedMp4Buffer: null, // ArrayBuffer (鐵律4：不預先綁定隱藏連結，點擊才即時建立)
+            isRendering: false
+        };
 
-    document.getElementById('mvSeekSlider').addEventListener('input', (e) => {
-      if (app.duration > 0) {
-        previewAudio.currentTime = (e.target.value / 100) * app.duration;
-        drawMvFrame(previewAudio.currentTime);
-      }
-    });
+        // DOM 元素參照
+        const mainAudio = document.getElementById('mainAudio');
+        const audioInput = document.getElementById('audioInput');
+        const audioFileName = document.getElementById('audioFileName');
+        const audioDurationBadge = document.getElementById('audioDurationBadge');
+        const step1PlayBtn = document.getElementById('step1PlayBtn');
+        const step1SeekSlider = document.getElementById('step1SeekSlider');
+        const step1TimeText = document.getElementById('step1TimeText');
+        const spectrumCanvas = document.getElementById('spectrumCanvas');
+        const spectrumCtx = spectrumCanvas.getContext('2d');
 
-    ['subPosSelect', 'subFontSelect', 'kenBurnsMode'].forEach(id => {
-      document.getElementById(id).addEventListener('change', () => drawMvFrame(previewAudio.currentTime || 0));
-    });
-    document.getElementById('subSizeRange').addEventListener('input', (e) => {
-      document.getElementById('subSizeLabel').textContent = `${e.target.value}px`;
-      drawMvFrame(previewAudio.currentTime || 0);
-    });
-    document.getElementById('subStrokeRange').addEventListener('input', (e) => {
-      document.getElementById('subStrokeLabel').textContent = `${e.target.value}px`;
-      drawMvFrame(previewAudio.currentTime || 0);
-    });
-    document.querySelectorAll('.c-swatch').forEach(btn => {
-      btn.addEventListener('click', () => {
-        app.subColor = btn.dataset.c;
-        document.getElementById('subColorInput').value = app.subColor;
-        drawMvFrame(previewAudio.currentTime || 0);
-      });
-    });
-    document.getElementById('subColorInput').addEventListener('input', (e) => {
-      app.subColor = e.target.value;
-      drawMvFrame(previewAudio.currentTime || 0);
-    });
-    document.getElementById('volBoostRange').addEventListener('input', (e) => {
-      document.getElementById('volBoostLabel').textContent = `${e.target.value}%`;
-    });
+        const photoInput = document.getElementById('photoInput');
+        const clearPhotosBtn = document.getElementById('clearPhotosBtn');
+        const photoGrid = document.getElementById('photoGrid');
+        const photoAllocationInfo = document.getElementById('photoAllocationInfo');
+        const kenBurnsModeSelect = document.getElementById('kenBurnsMode');
 
-    document.getElementById('startRenderBtn').addEventListener('click', async () => {
-      if (!app.audioBuffer || app.photos.length === 0) {
-        return alert('請先在步驟 1 載入音樂與至少一張照片！');
-      }
-      if (app.lyrics.length === 0 && document.getElementById('lyricTextarea').value.trim()) {
-        alignLyricsNow();
-      }
-      if (app.isRendering) return;
-      previewAudio.pause();
-      app.isRendering = true;
+        const subtitleFileInput = document.getElementById('subtitleFileInput');
+        const exportSrtBtn = document.getElementById('exportSrtBtn');
+        const exportLrcBtn = document.getElementById('exportLrcBtn');
+        const lyricsTextarea = document.getElementById('lyricsTextarea');
+        const parseLyricsBtn = document.getElementById('parseLyricsBtn');
+        const subtitleListContainer = document.getElementById('subtitleListContainer');
+        const subtitleCountBadge = document.getElementById('subtitleCountBadge');
 
-      const startBtn = document.getElementById('startRenderBtn');
-      const statusPanel = document.getElementById('renderStatusPanel');
-      const successPanel = document.getElementById('exportSuccessPanel');
-      const bar = document.getElementById('renderBar');
-      const pctTxt = document.getElementById('renderPct');
-      const msgTxt = document.getElementById('renderMsg');
-      const detailTxt = document.getElementById('renderDetailTxt');
+        const mvCanvas = document.getElementById('mvCanvas');
+        const mvCtx = mvCanvas.getContext('2d');
+        const previewPlayBtn = document.getElementById('previewPlayBtn');
+        const previewSeekSlider = document.getElementById('previewSeekSlider');
+        const previewTimeDisplay = document.getElementById('previewTimeDisplay');
 
-      startBtn.disabled = true;
-      startBtn.classList.add('opacity-50');
-      statusPanel.classList.remove('hidden');
-      successPanel.classList.add('hidden');
+        const filenameModal = document.getElementById('filenameModal');
+        const openFilenameModalBtn = document.getElementById('openFilenameModalBtn');
+        const closeFilenameModalBtn = document.getElementById('closeFilenameModalBtn');
+        const filenameModalInput = document.getElementById('filenameModalInput');
+        const bringSongTitleBtn = document.getElementById('bringSongTitleBtn');
+        const confirmFilenameBtn = document.getElementById('confirmFilenameBtn');
+        const currentFilenameLabel = document.getElementById('currentFilenameLabel');
 
-      const boostGain = parseInt(document.getElementById('volBoostRange').value) / 100;
+        const startRenderBtn = document.getElementById('startRenderBtn');
+        const manualDownloadBtn = document.getElementById('manualDownloadBtn');
+        const renderProgressBox = document.getElementById('renderProgressBox');
+        const renderStatusText = document.getElementById('renderStatusText');
+        const renderPercentText = document.getElementById('renderPercentText');
+        const renderProgressBar = document.getElementById('renderProgressBar');
 
-      try {
-        if (typeof VideoEncoder === 'undefined' || typeof AudioEncoder === 'undefined' || typeof Mp4Muxer === 'undefined') {
-          throw new Error('瀏覽器環境不支援 WebCodecs，請使用 Chrome 最新版開啟');
-        }
+        // Web Audio API 頻譜與防爆音節點
+        let audioCtx = null;
+        let analyserNode = null;
+        let gainNode = null;
+        let shaperNode = null;
+        let sourceNode = null;
 
-        const fps = 30;
-        const totalDuration = app.duration;
-        const totalFrames = Math.ceil(totalDuration * fps);
-        const sampleRate = app.audioBuffer.sampleRate;
-        const numberOfChannels = Math.min(2, app.audioBuffer.numberOfChannels);
-
-        msgTxt.textContent = '1/3 正在初始化 ISO-BMFF MP4 硬體封裝器...';
-
-        const muxer = new Mp4Muxer.Muxer({
-          target: new Mp4Muxer.ArrayBufferTarget(),
-          video: { codec: 'avc', width: 1920, height: 1080 },
-          audio: { codec: 'aac', numberOfChannels: numberOfChannels, sampleRate: sampleRate },
-          fastStart: 'in-memory'
-        });
-
-        const videoEncoder = new VideoEncoder({
-          output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-          error: (e) => console.error('VideoEncoder error:', e)
-        });
-
-        const codecCandidates = ['avc1.640028', 'avc1.4d0028', 'avc1.42e028', 'avc1.42001f'];
-        let selectedVideoConfig = null;
-        for (const c of codecCandidates) {
-          const cfg = { codec: c, width: 1920, height: 1080, bitrate: 4500000, framerate: fps };
-          const sup = await VideoEncoder.isConfigSupported(cfg);
-          if (sup.supported) { selectedVideoConfig = cfg; break; }
-        }
-        if (!selectedVideoConfig) {
-          selectedVideoConfig = { codec: 'avc1.42e028', width: 1920, height: 1080, bitrate: 4000000, framerate: fps };
-        }
-        videoEncoder.configure(selectedVideoConfig);
-
-        const audioEncoder = new AudioEncoder({
-          output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
-          error: (e) => console.error('AudioEncoder error:', e)
-        });
-        audioEncoder.configure({
-          codec: 'mp4a.40.2', numberOfChannels: numberOfChannels, sampleRate: sampleRate, bitrate: 192000
-        });
-
-        msgTxt.textContent = '2/3 正在封裝高音質 AAC 音軌...';
-        const totalSamples = app.audioBuffer.length;
-        const chunkFrames = sampleRate;
-        const ch0 = app.audioBuffer.getChannelData(0);
-        const ch1 = numberOfChannels > 1 ? app.audioBuffer.getChannelData(1) : ch0;
-
-        for (let offset = 0; offset < totalSamples; offset += chunkFrames) {
-          const len = Math.min(chunkFrames, totalSamples - offset);
-          const planarBuf = new Float32Array(len * numberOfChannels);
-          for (let i = 0; i < len; i++) {
-            planarBuf[i] = Math.tanh(ch0[offset + i] * boostGain);
-            if (numberOfChannels > 1) {
-              planarBuf[len + i] = Math.tanh(ch1[offset + i] * boostGain);
-            }
-          }
-          const timestampUs = Math.round((offset / sampleRate) * 1_000_000);
-          const audioData = new AudioData({
-            format: 'f32-planar', sampleRate: sampleRate, numberOfFrames: len,
-            numberOfChannels: numberOfChannels, timestamp: timestampUs, data: planarBuf
-          });
-          audioEncoder.encode(audioData);
-          audioData.close();
-        }
-        await audioEncoder.flush();
-
-        msgTxt.textContent = '3/3 正在逐幀編碼 1080P 畫面與字幕...';
-        const frameDurationUs = Math.round(1_000_000 / fps);
-
-        for (let frameIdx = 0; frameIdx < totalFrames; frameIdx++) {
-          const curTimeSec = frameIdx / fps;
-          drawMvFrame(curTimeSec);
-          const timestampUs = Math.round(curTimeSec * 1_000_000);
-          const vf = new VideoFrame(mvCanvas, { timestamp: timestampUs, duration: frameDurationUs });
-          videoEncoder.encode(vf, { keyFrame: (frameIdx % 30 === 0) });
-          vf.close();
-
-          if (videoEncoder.encodeQueueSize > 10) {
-            await new Promise(resolve => {
-              const checkQueue = () => {
-                if (videoEncoder.encodeQueueSize <= 4) resolve();
-                else setTimeout(checkQueue, 8);
-              };
-              checkQueue();
+        // ==================== 頁籤切換 ====================
+        function switchTab(tabIndex) {
+            [1, 2, 3].forEach(i => {
+                const section = document.getElementById(`step${i}`);
+                const btn = document.getElementById(`tabBtn${i}`);
+                if (i === tabIndex) {
+                    section.classList.remove('hidden');
+                    btn.classList.add('tab-active');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    section.classList.add('hidden');
+                    btn.classList.remove('tab-active');
+                    btn.classList.add('text-slate-400');
+                }
             });
-          }
-
-          if (frameIdx % 15 === 0 || frameIdx === totalFrames - 1) {
-            const pct = Math.min(99, Math.floor(((frameIdx + 1) / totalFrames) * 100));
-            bar.style.width = `${pct}%`;
-            pctTxt.textContent = `${pct}%`;
-            detailTxt.textContent = `已精準寫入 ${fmtTime(curTimeSec)} / ${fmtTime(totalDuration)} (第 ${frameIdx + 1}/${totalFrames} 幀)`;
-            await new Promise(r => setTimeout(r, 0));
-          }
+            drawPreviewFrame(mainAudio.currentTime || 0);
         }
 
-        msgTxt.textContent = '正在寫入 MP4 moov 總時長與 stss 關鍵影格索引表...';
-        await videoEncoder.flush();
-        muxer.finalize();
+        // ==================== 格式化時間工具 ====================
+        function formatTime(sec) {
+            if (!isFinite(sec) || sec < 0) sec = 0;
+            const m = Math.floor(sec / 60);
+            const s = (sec % 60).toFixed(1);
+            return `${String(m).padStart(2, '0')}:${s.padStart(4, '0')}`;
+        }
 
-        const { buffer } = muxer.target;
-        app.finalBlob = new Blob([buffer], { type: 'video/mp4' });
-        bar.style.width = '100%';
-        pctTxt.textContent = '100%';
-        const sizeMb = (app.finalBlob.size / (1024 * 1024)).toFixed(2);
-        document.getElementById('exportSummaryInfo').textContent =
-          `檔案大小：${sizeMb} MB · 精確總時長：${fmtTime(totalDuration)} · 已內建完整 H.264 關鍵影格索引，手機下載項目與相簿快轉倒退 100% 瞬間同步！`;
+        function formatSrtTime(sec) {
+            if (!isFinite(sec) || sec < 0) sec = 0;
+            const hrs = Math.floor(sec / 3600);
+            const mins = Math.floor((sec % 3600) / 60);
+            const secs = Math.floor(sec % 60);
+            const ms = Math.round((sec - Math.floor(sec)) * 1000);
+            return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')},${String(ms).padStart(3, '0')}`;
+        }
 
-        statusPanel.classList.add('hidden');
-        successPanel.classList.remove('hidden');
-      } catch (err) {
-        alert('硬體編碼發生錯誤：' + err.message);
-        console.error(err);
-      } finally {
-        app.isRendering = false;
-        startBtn.disabled = false;
-        startBtn.classList.remove('opacity-50');
-      }
-    });
+        function formatLrcTime(sec) {
+            if (!isFinite(sec) || sec < 0) sec = 0;
+            const mins = Math.floor(sec / 60);
+            const secs = Math.floor(sec % 60);
+            const cs = Math.round((sec - Math.floor(sec)) * 100);
+            return `[${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(cs).padStart(2, '0')}]`;
+        }
 
-    document.getElementById('singleDownloadBtn').addEventListener('click', () => {
-      if (!app.finalBlob) return;
-      const now = new Date();
-      const stamp = `${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
-      const uniqueFileName = `${app.customName}_${stamp}.mp4`;
-      const url = URL.createObjectURL(app.finalBlob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = uniqueFileName;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 3000);
-    });
-  </script>
+        // ==================== 步驟 1：音訊載入與 Web Audio 綠紫頻譜 ====================
+        function initWebAudio() {
+            if (audioCtx) return;
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContextClass();
+            sourceNode = audioCtx.createMediaElementSource(mainAudio);
+            gainNode = audioCtx.createGain();
+            shaperNode = audioCtx.createWaveShaper();
+            analyserNode = audioCtx.createAnalyser();
+            analyserNode.fftSize = 128;
+
+            // 建立 Math.tanh 軟削波曲線
+            const curve = new Float32Array(65536);
+            for (let i = 0; i < 65536; i++) {
+                const x = (i * 2) / 65536 - 1;
+                curve[i] = Math.tanh(x);
+            }
+            shaperNode.curve = curve;
+            shaperNode.oversample = '2x';
+
+            sourceNode.connect(gainNode);
+            gainNode.connect(shaperNode);
+            shaperNode.connect(analyserNode);
+            analyserNode.connect(audioCtx.destination);
+        }
+
+        audioInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            state.audioFile = file;
+
+            const rawName = file.name.replace(/\.[^/.]+$/, '');
+            state.songTitle = rawName || 'AI_音樂MV作品';
+            state.exportBaseName = state.songTitle;
+            currentFilenameLabel.textContent = state.exportBaseName;
+            filenameModalInput.value = state.exportBaseName;
+
+            audioFileName.textContent = `🎵 ${file.name}`;
+            const objectUrl = URL.createObjectURL(file);
+            mainAudio.src = objectUrl;
+
+            // 解碼 AudioBuffer 供離線算圖使用
+            const arrayBuf = await file.arrayBuffer();
+            const TempAudioCtx = window.AudioContext || window.webkitAudioContext;
+            const tempCtx = new TempAudioCtx();
+            state.audioBuffer = await tempCtx.decodeAudioData(arrayBuf);
+            state.audioDuration = state.audioBuffer.duration;
+            await tempCtx.close();
+
+            audioDurationBadge.textContent = `總長 ${formatTime(state.audioDuration)}`;
+            step1PlayBtn.disabled = false;
+            step1SeekSlider.disabled = false;
+            step1SeekSlider.max = state.audioDuration;
+            previewSeekSlider.max = state.audioDuration;
+
+            updatePhotoAllocationUI();
+            if (lyricsTextarea.value.trim()) {
+                parseAndAlignLyrics();
+            }
+            updateTimeUI(0);
+            drawPreviewFrame(0);
+        });
+
+        // 播放與暫停控制
+        function togglePlay() {
+            if (!state.audioBuffer && !mainAudio.src) {
+                alert('請先在步驟 1 上傳音樂檔案！');
+                return;
+            }
+            initWebAudio();
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            if (mainAudio.paused) {
+                mainAudio.play();
+                step1PlayBtn.textContent = '⏸ 暫停試聽';
+                previewPlayBtn.textContent = '⏸ 暫停預覽';
+            } else {
+                mainAudio.pause();
+                step1PlayBtn.textContent = '▶ 播放試聽';
+                previewPlayBtn.textContent = '▶ 播放預覽';
+            }
+        }
+
+        step1PlayBtn.addEventListener('click', togglePlay);
+        previewPlayBtn.addEventListener('click', togglePlay);
+
+        mainAudio.addEventListener('ended', () => {
+            step1PlayBtn.textContent = '▶ 播放試聽';
+            previewPlayBtn.textContent = '▶ 播放預覽';
+        });
+
+        step1SeekSlider.addEventListener('input', (e) => {
+            const t = parseFloat(e.target.value);
+            mainAudio.currentTime = t;
+            updateTimeUI(t);
+            drawPreviewFrame(t);
+        });
+
+        previewSeekSlider.addEventListener('input', (e) => {
+            const t = parseFloat(e.target.value);
+            mainAudio.currentTime = t;
+            updateTimeUI(t);
+            drawPreviewFrame(t);
+        });
+
+        function updateTimeUI(cur) {
+            const dur = state.audioDuration || mainAudio.duration || 0;
+            step1SeekSlider.value = cur;
+            previewSeekSlider.value = cur;
+            const txt = `${formatTime(cur)} / ${formatTime(dur)}`;
+            step1TimeText.textContent = txt;
+            previewTimeDisplay.textContent = txt;
+        }
+
+        // 綠紫雙色動態跳動頻譜與即時預覽迴圈
+        function animationLoop() {
+            // 繪製綠紫雙色動態頻譜
+            const w = spectrumCanvas.width;
+            const h = spectrumCanvas.height;
+            spectrumCtx.clearRect(0, 0, w, h);
+
+            if (analyserNode && !mainAudio.paused) {
+                const bufferLength = analyserNode.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                analyserNode.getByteFrequencyData(dataArray);
+
+                const barCount = 40;
+                const barWidth = (w / barCount) - 3;
+                for (let i = 0; i < barCount; i++) {
+                    const val = dataArray[i] || 0;
+                    const barHeight = Math.max(4, (val / 255) * (h - 8));
+                    const x = i * (barWidth + 3) + 2;
+                    const y = h - barHeight;
+
+                    const grad = spectrumCtx.createLinearGradient(0, y, 0, h);
+                    grad.addColorStop(0, '#34d399'); // 翠綠
+                    grad.addColorStop(0.5, '#10b981');
+                    grad.addColorStop(1, '#9333ea'); // 紫羅蘭
+                    spectrumCtx.fillStyle = grad;
+                    spectrumCtx.fillRect(x, y, barWidth, barHeight);
+                }
+            } else {
+                // 靜態待機波紋
+                const barCount = 40;
+                const barWidth = (w / barCount) - 3;
+                for (let i = 0; i < barCount; i++) {
+                    const barHeight = 6 + Math.sin(i * 0.4) * 3;
+                    const x = i * (barWidth + 3) + 2;
+                    const y = h - barHeight;
+                    spectrumCtx.fillStyle = '#1e293b';
+                    spectrumCtx.fillRect(x, y, barWidth, barHeight);
+                }
+            }
+
+            if (!mainAudio.paused && !state.isRendering) {
+                const cur = mainAudio.currentTime;
+                updateTimeUI(cur);
+                drawPreviewFrame(cur);
+            }
+
+            requestAnimationFrame(animationLoop);
+        }
+        requestAnimationFrame(animationLoop);
+
+        // ==================== 步驟 1-B：批次照片管理 ====================
+        photoInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (!files.length) return;
+
+            for (const file of files) {
+                const url = URL.createObjectURL(file);
+                const img = await new Promise((resolve) => {
+                    const image = new Image();
+                    image.onload = () => resolve(image);
+                    image.src = url;
+                });
+                state.photos.push({
+                    id: Date.now() + Math.random().toString(36).substring(2, 7),
+                    file,
+                    url,
+                    img
+                });
+            }
+            photoInput.value = '';
+            renderPhotoGrid();
+            drawPreviewFrame(mainAudio.currentTime || 0);
+        });
+
+        clearPhotosBtn.addEventListener('click', () => {
+            state.photos.forEach(p => URL.revokeObjectURL(p.url));
+            state.photos = [];
+            renderPhotoGrid();
+            drawPreviewFrame(mainAudio.currentTime || 0);
+        });
+
+        window.removePhotoById = function(id) {
+            const idx = state.photos.findIndex(p => p.id === id);
+            if (idx !== -1) {
+                URL.revokeObjectURL(state.photos[idx].url);
+                state.photos.splice(idx, 1);
+                renderPhotoGrid();
+                drawPreviewFrame(mainAudio.currentTime || 0);
+            }
+        };
+
+        function updatePhotoAllocationUI() {
+            const count = state.photos.length;
+            const dur = state.audioDuration || 30;
+            if (count === 0) {
+                photoAllocationInfo.textContent = '請先加入照片（支援一次選取多張 JPG/PNG/WebP）';
+            } else {
+                const eachSec = (dur / count).toFixed(2);
+                photoAllocationInfo.textContent = `已載入 ${count} 張照片 · 總長 ${dur.toFixed(1)} 秒 · 每張自動均分 ${eachSec} 秒`;
+            }
+        }
+
+        function renderPhotoGrid() {
+            updatePhotoAllocationUI();
+            if (state.photos.length === 0) {
+                photoGrid.innerHTML = `
+                    <div class="col-span-full flex flex-col items-center justify-center text-slate-500 py-16">
+                        <div class="text-4xl mb-2">📸</div>
+                        <p class="text-sm font-semibold">尚無照片，請點擊右上角「批次新增照片」</p>
+                        <p class="text-xs mt-1">系統將依音樂總長度自動為每張照片分配顯示區間</p>
+                    </div>`;
+                return;
+            }
+
+            const dur = state.audioDuration || 30;
+            const seg = dur / state.photos.length;
+
+            photoGrid.innerHTML = state.photos.map((p, index) => {
+                const st = (index * seg).toFixed(1);
+                const ed = ((index + 1) * seg).toFixed(1);
+                return `
+                    <div class="relative group bg-slate-900 rounded-xl overflow-hidden border border-slate-800 shadow">
+                        <img src="${p.url}" alt="photo-${index+1}" class="w-full h-28 object-cover">
+                        <div class="p-2 flex items-center justify-between text-[11px] bg-slate-950/90">
+                            <span class="font-bold text-emerald-400">#${index + 1}</span>
+                            <span class="font-mono text-slate-400">${st}s ~ ${ed}s</span>
+                        </div>
+                        <button type="button" onclick="removePhotoById('${p.id}')" 
+                            class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white text-xs font-bold flex items-center justify-center shadow">
+                            ✕
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        kenBurnsModeSelect.addEventListener('change', (e) => {
+            state.kenBurnsMode = e.target.value;
+            drawPreviewFrame(mainAudio.currentTime || 0);
+        });
+
+        // ==================== 步驟 2：歌詞解析、SRT/LRC 匯入與匯出 ====================
+        function parseAndAlignLyrics() {
+            const raw = lyricsTextarea.value;
+            if (!raw.trim()) {
+                state.subtitles = [];
+                renderSubtitleList();
+                drawPreviewFrame(mainAudio.currentTime || 0);
+                return;
+            }
+
+            const totalDur = state.audioDuration || 30;
+            const lines = raw.replace(/
+/g, '
+').split('
+').map(l => l.trim()).filter(Boolean);
+
+            // 檢查是否為 SRT 格式
+            const isSrt = lines.some(l => /\d{2}:\d{2}:\d{2}[.,]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[.,]\d{3}/.test(l));
+            if (isSrt) {
+                const subs = [];
+                const blocks = raw.replace(/
+/g, '
+').split(/
+\s*
+/);
+                for (const block of blocks) {
+                    const bLines = block.split('
+').map(s => s.trim()).filter(Boolean);
+                    const timeLineIdx = bLines.findIndex(l => /(\d{2}):(\d{2}):(\d{2})[.,](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[.,](\d{3})/.test(l));
+                    if (timeLineIdx !== -1) {
+                        const m = bLines[timeLineIdx].match(/(\d{2}):(\d{2}):(\d{2})[.,](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[.,](\d{3})/);
+                        const start = parseInt(m[1])*3600 + parseInt(m[2])*60 + parseInt(m[3]) + parseInt(m[4])/1000;
+                        const end = parseInt(m[5])*3600 + parseInt(m[6])*60 + parseInt(m[7]) + parseInt(m[8])/1000;
+                        const textLines = bLines.slice(timeLineIdx + 1)
+                            .map(t => t.replace(/\[?\d{1,2}:\d{2}(?:[.,]\d{1,3})?\]?/g, '').trim())
+                            .filter(Boolean);
+                        if (textLines.length) {
+                            subs.push({ start, end, text: textLines.join(' ') });
+                        }
+                    }
+                }
+                state.subtitles = subs;
+                renderSubtitleList();
+                drawPreviewFrame(mainAudio.currentTime || 0);
+                return;
+            }
+
+            // 檢查是否含有 LRC 或行內時間碼 (如 [00:12.34] 或 00:12.34)
+            const lrcRegex = /\[?(\d{1,2}):(\d{2})(?:[.,](\d{1,3}))?\]?/;
+            const timedLines = [];
+            let hasTimestamp = false;
+
+            for (const line of lines) {
+                // 略過 LRC metadata 標籤如 [ti:...] [ar:...]
+                if (/^\[(ti|ar|al|by|offset):/i.test(line)) continue;
+                const match = line.match(lrcRegex);
+                if (match) {
+                    hasTimestamp = true;
+                    const min = parseInt(match[1], 10);
+                    const sec = parseInt(match[2], 10);
+                    const frac = match[3] ? parseFloat('0.' + match[3]) : 0;
+                    const start = min * 60 + sec + frac;
+                    // 濾除畫面上所有時間碼
+                    const cleanText = line.replace(/\[?\d{1,2}:\d{2}(?:[.,]\d{1,3})?\]?/g, '').trim();
+                    if (cleanText) {
+                        timedLines.push({ start, text: cleanText });
+                    }
+                }
+            }
+
+            if (hasTimestamp && timedLines.length > 0) {
+                timedLines.sort((a, b) => a.start - b.start);
+                state.subtitles = timedLines.map((item, idx) => {
+                    const nextStart = (idx < timedLines.length - 1) ? timedLines[idx + 1].start : Math.max(totalDur, item.start + 3);
+                    return {
+                        start: Number(item.start.toFixed(2)),
+                        end: Number(Math.max(item.start + 0.5, nextStart).toFixed(2)),
+                        text: item.text
+                    };
+                });
+            } else {
+                // 純歌詞：依字數加權自動分配時間
+                const cleanPureLines = lines
+                    .map(l => l.replace(/\[?\d{1,2}:\d{2}(?:[.,]\d{1,3})?\]?/g, '').trim())
+                    .filter(Boolean);
+
+                const weights = cleanPureLines.map(l => Math.max(2, l.length));
+                const totalWeight = weights.reduce((a, b) => a + b, 0) || 1;
+                let accTime = 0;
+
+                state.subtitles = cleanPureLines.map((text, i) => {
+                    const dur = (weights[i] / totalWeight) * totalDur;
+                    const start = Number(accTime.toFixed(2));
+                    accTime += dur;
+                    const end = Number((i === cleanPureLines.length - 1 ? totalDur : accTime).toFixed(2));
+                    return { start, end, text };
+                });
+            }
+
+            renderSubtitleList();
+            drawPreviewFrame(mainAudio.currentTime || 0);
+        }
+
+        parseLyricsBtn.addEventListener('click', parseAndAlignLyrics);
+
+        function renderSubtitleList() {
+            subtitleCountBadge.textContent = `${state.subtitles.length} 句字幕`;
+            if (state.subtitles.length === 0) {
+                subtitleListContainer.innerHTML = `
+                    <div class="text-center text-slate-500 py-20 text-sm">
+                        尚未建立字幕清單，請於左側輸入歌詞或匯入字幕檔
+                    </div>`;
+                return;
+            }
+
+            subtitleListContainer.innerHTML = state.subtitles.map((sub, idx) => `
+                <div onclick="jumpToSubtitleTime(${sub.start})" 
+                    class="group bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-emerald-500/60 rounded-xl p-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 cursor-pointer transition">
+                    <div class="flex items-center gap-2 min-w-0 flex-1">
+                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-950 text-emerald-400 font-bold">#${idx + 1}</span>
+                        <input type="text" value="${sub.text.replace(/"/g, '&quot;')}" 
+                            onclick="event.stopPropagation()"
+                            onchange="updateSubItem(${idx}, 'text', this.value)"
+                            class="bg-transparent border-b border-transparent focus:border-emerald-500 text-sm text-white font-semibold w-full outline-none">
+                    </div>
+                    <div class="flex items-center gap-1.5 text-xs font-mono self-end sm:self-center" onclick="event.stopPropagation()">
+                        <input type="number" step="0.1" value="${sub.start}" 
+                            onchange="updateSubItem(${idx}, 'start', this.value)"
+                            class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-emerald-300 text-center">
+                        <span class="text-slate-500">~</span>
+                        <input type="number" step="0.1" value="${sub.end}" 
+                            onchange="updateSubItem(${idx}, 'end', this.value)"
+                            class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-purple-300 text-center">
+                        <span class="text-[11px] text-slate-400 ml-1">秒</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.updateSubItem = function(idx, field, val) {
+            if (!state.subtitles[idx]) return;
+            if (field === 'text') {
+                state.subtitles[idx].text = val.trim();
+            } else {
+                state.subtitles[idx][field] = Math.max(0, parseFloat(val) || 0);
+            }
+            drawPreviewFrame(mainAudio.currentTime || 0);
+        };
+
+        window.jumpToSubtitleTime = function(sec) {
+            mainAudio.currentTime = sec;
+            updateTimeUI(sec);
+            drawPreviewFrame(sec);
+            if (mainAudio.paused && state.audioBuffer) {
+                togglePlay();
+            }
+        };
+
+        // 匯入 SRT/LRC/VTT/TXT
+        subtitleFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const text = await file.text();
+            lyricsTextarea.value = text;
+            parseAndAlignLyrics();
+            subtitleFileInput.value = '';
+        });
+
+        // 匯出 SRT
+        exportSrtBtn.addEventListener('click', () => {
+            if (!state.subtitles.length) {
+                parseAndAlignLyrics();
+            }
+            if (!state.subtitles.length) {
+                alert('目前沒有可匯出的字幕內容！');
+                return;
+            }
+            const srtContent = state.subtitles.map((s, i) => {
+                return `${i + 1}
+${formatSrtTime(s.start)} --> ${formatSrtTime(s.end)}
+${s.text}
+`;
+            }).join('
+');
+
+            const blob = new Blob([srtContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${state.exportBaseName || 'subtitles'}.srt`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        });
+
+        // 匯出 LRC
+        exportLrcBtn.addEventListener('click', () => {
+            if (!state.subtitles.length) {
+                parseAndAlignLyrics();
+            }
+            if (!state.subtitles.length) {
+                alert('目前沒有可匯出的歌詞內容！');
+                return;
+            }
+            const lrcContent = state.subtitles.map(s => `${formatLrcTime(s.start)}${s.text}`).join('
+');
+            const blob = new Blob([lrcContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${state.exportBaseName || 'lyrics'}.lrc`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        });
+
+        // ==================== 步驟 3：字幕樣式、音量倍增與 1080P 畫布繪製 ====================
+        document.getElementById('subPosY').addEventListener('change', (e) => {
+            state.subStyle.posY = parseFloat(e.target.value);
+            drawPreviewFrame(mainAudio.currentTime || 0);
+        });
+
+        document.getElementById('subFontFamily').addEventListener('change', (e) => {
+            state.subStyle.fontFamily = e.target.value;
+            drawPreviewFrame(mainAudio.currentTime || 0);
+        });
+
+        document.getElementById('subFontSize').addEventListener('input', (e) => {
+            state.subStyle.fontSize = parseInt(e.target.value, 10);
+            document.getElementById('subFontSizeVal').textContent = `${state.subStyle.fontSize}px`;
+            drawPreviewFrame(mainAudio.currentTime || 0);
+        });
+
+        document.getElementById('subOutlineWidth').addEventListener('input', (e) => {
+            state.subStyle.outlineWidth = parseInt(e.target.value, 10);
+            document.getElementById('subOutlineWidthVal').textContent = `${state.subStyle.outlineWidth}px`;
+            drawPreviewFrame(mainAudio.currentTime || 0);
+        });
+
+        window.setSubtitleColor = function(hex) {
+            state.subStyle.color = hex.toUpperCase();
+            document.getElementById('subCustomColor').value = state.subStyle.color;
+            document.getElementById('subColorHexLabel').textContent = state.subStyle.color;
+            drawPreviewFrame(mainAudio.currentTime || 0);
+        };
+
+        document.getElementById('subCustomColor').addEventListener('input', (e) => {
+            setSubtitleColor(e.target.value);
+        });
+
+        document.getElementById('volumeBoostSlider').addEventListener('input', (e) => {
+            const pct = parseInt(e.target.value, 10);
+            state.volumeBoost = pct / 100;
+            document.getElementById('volumeBoostVal').textContent = `${pct}%`;
+            if (gainNode) {
+                gainNode.gain.value = state.volumeBoost;
+            }
+        });
+
+        // 核心 1920x1080 畫面渲染函式（預覽與 WebCodecs 逐幀算圖共用）
+        function renderFrameToCanvas(ctx, timeSec, totalDuration) {
+            const W = 1920;
+            const H = 1080;
+            ctx.fillStyle = '#050811';
+            ctx.fillRect(0, 0, W, H);
+
+            const dur = Math.max(0.1, totalDuration || state.audioDuration || 30);
+
+            // 1. 繪製照片與 Ken Burns 運鏡
+            if (state.photos.length > 0) {
+                const segDur = dur / state.photos.length;
+                const idx = Math.min(state.photos.length - 1, Math.floor(timeSec / segDur));
+                const localProgress = Math.max(0, Math.min(1, (timeSec - idx * segDur) / segDur));
+                const photoObj = state.photos[idx];
+
+                if (photoObj && photoObj.img) {
+                    const img = photoObj.img;
+                    const imgRatio = img.width / img.height;
+                    const canvasRatio = W / H;
+
+                    let baseW, baseH;
+                    if (imgRatio > canvasRatio) {
+                        baseH = H;
+                        baseW = H * imgRatio;
+                    } else {
+                        baseW = W;
+                        baseH = W / imgRatio;
+                    }
+
+                    let scale = 1.0;
+                    let tx = 0;
+                    let ty = 0;
+                    const mode = state.kenBurnsMode;
+
+                    if (mode === 'smart') {
+                        if (idx % 2 === 0) {
+                            scale = 1.0 + 0.16 * localProgress;
+                            tx = -25 * localProgress;
+                        } else {
+                            scale = 1.16 - 0.16 * localProgress;
+                            tx = 25 * localProgress;
+                        }
+                    } else if (mode === 'zoomIn') {
+                        scale = 1.0 + 0.18 * localProgress;
+                    } else if (mode === 'zoomOut') {
+                        scale = 1.18 - 0.18 * localProgress;
+                    } else if (mode === 'pan') {
+                        scale = 1.12;
+                        const dir = (idx % 2 === 0) ? 1 : -1;
+                        tx = dir * (-55 + 110 * localProgress);
+                    } else if (mode === 'static') {
+                        scale = 1.0;
+                    }
+
+                    ctx.save();
+                    ctx.translate(W / 2 + tx, H / 2 + ty);
+                    ctx.scale(scale, scale);
+                    ctx.drawImage(img, -baseW / 2, -baseH / 2, baseW, baseH);
+                    ctx.restore();
+                }
+            } else {
+                // 無照片時顯示質感漸層背景
+                const grad = ctx.createLinearGradient(0, 0, W, H);
+                grad.addColorStop(0, '#0f172a');
+                grad.addColorStop(0.5, '#1e1b4b');
+                grad.addColorStop(1, '#064e3b');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, W, H);
+
+                ctx.fillStyle = 'rgba(255,255,255,0.18)';
+                ctx.font = "bold 44px 'Noto Sans TC', sans-serif";
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('AI 照片音樂 MV 工作站 · 1920×1080 預覽畫布', W / 2, H / 2);
+            }
+
+            // 2. 繪製當前時間字幕
+            const activeSub = state.subtitles.find(s => timeSec >= s.start && timeSec <= s.end);
+            if (activeSub && activeSub.text) {
+                const { posY, fontFamily, fontSize, outlineWidth, color } = state.subStyle;
+                ctx.save();
+                ctx.font = `900 ${fontSize}px ${fontFamily}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+
+                const x = W / 2;
+                const y = H * posY;
+
+                // 深黑外框與陰影
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+                ctx.shadowBlur = 12;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 3;
+
+                if (outlineWidth > 0) {
+                    ctx.lineWidth = outlineWidth * 2;
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineJoin = 'round';
+                    ctx.miterLimit = 2;
+                    ctx.strokeText(activeSub.text, x, y);
+                }
+
+                ctx.fillStyle = color;
+                ctx.fillText(activeSub.text, x, y);
+                ctx.restore();
+            }
+        }
+
+        function drawPreviewFrame(timeSec) {
+            renderFrameToCanvas(mvCtx, timeSec, state.audioDuration || 30);
+        }
+
+        // ==================== 鐵律 3：防手機注音鍵盤遮擋（頂部置頂浮動面板） ====================
+        openFilenameModalBtn.addEventListener('click', () => {
+            filenameModalInput.value = state.exportBaseName;
+            filenameModal.classList.remove('hidden');
+            setTimeout(() => filenameModalInput.focus(), 50);
+        });
+
+        closeFilenameModalBtn.addEventListener('click', () => {
+            filenameModal.classList.add('hidden');
+        });
+
+        bringSongTitleBtn.addEventListener('click', () => {
+            filenameModalInput.value = state.songTitle || 'AI_音樂MV作品';
+            filenameModalInput.focus();
+        });
+
+        confirmFilenameBtn.addEventListener('click', () => {
+            const val = filenameModalInput.value.trim().replace(/[\/:*?"<>|]/g, '_');
+            if (val) {
+                state.exportBaseName = val;
+                currentFilenameLabel.textContent = state.exportBaseName;
+            }
+            filenameModal.classList.add('hidden');
+        });
+
+        // ==================== 鐵律 1 & 2：WebCodecs + mp4-muxer 30FPS 離線逐幀算圖 ====================
+        startRenderBtn.addEventListener('click', async () => {
+            if (state.isRendering) return;
+            if (!window.VideoEncoder || !window.AudioEncoder) {
+                alert('您的瀏覽器不支援 WebCodecs API，請使用最新版 Chrome / Edge 瀏覽器！');
+                return;
+            }
+
+            if (!mainAudio.paused) {
+                mainAudio.pause();
+                step1PlayBtn.textContent = '▶ 播放試聽';
+                previewPlayBtn.textContent = '▶ 播放預覽';
+            }
+
+            state.isRendering = true;
+            state.renderedMp4Buffer = null;
+            manualDownloadBtn.classList.add('hidden');
+            startRenderBtn.disabled = true;
+            startRenderBtn.classList.add('opacity-60');
+            renderProgressBox.classList.remove('hidden');
+            renderProgressBar.style.width = '0%';
+            renderPercentText.textContent = '0%';
+            renderStatusText.textContent = '正在初始化 WebCodecs (VideoEncoder + AudioEncoder) 與 mp4-muxer...';
+
+            try {
+                const FPS = 30;
+                const W = 1920;
+                const H = 1080;
+                const totalDuration = state.audioDuration || 10;
+                const totalFrames = Math.max(1, Math.ceil(totalDuration * FPS));
+                const sampleRate = state.audioBuffer ? state.audioBuffer.sampleRate : 48000;
+                const numberOfChannels = 2;
+
+                // 鐵律 2：Mp4Muxer.Muxer 必須設定 fastStart: 'in-memory'
+                const muxer = new Mp4Muxer.Muxer({
+                    target: new Mp4Muxer.ArrayBufferTarget(),
+                    video: {
+                        codec: 'avc',
+                        width: W,
+                        height: H
+                    },
+                    audio: {
+                        codec: 'aac',
+                        numberOfChannels: numberOfChannels,
+                        sampleRate: sampleRate
+                    },
+                    fastStart: 'in-memory'
+                });
+
+                // 建立 VideoEncoder
+                const videoEncoder = new VideoEncoder({
+                    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+                    error: (err) => console.error('VideoEncoder error:', err)
+                });
+
+                videoEncoder.configure({
+                    codec: 'avc1.640028', // H.264 High Profile Level 4.0 (支援 1920x1080@30fps)
+                    width: W,
+                    height: H,
+                    bitrate: 8_000_000,
+                    framerate: FPS
+                });
+
+                // 建立 AudioEncoder
+                const audioEncoder = new AudioEncoder({
+                    output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+                    error: (err) => console.error('AudioEncoder error:', err)
+                });
+
+                audioEncoder.configure({
+                    codec: 'mp4a.40.2', // AAC-LC
+                    numberOfChannels: numberOfChannels,
+                    sampleRate: sampleRate,
+                    bitrate: 192_000
+                });
+
+                // 1. 編碼音訊（套用音量倍增 100%~300% 與 Math.tanh 防爆音軟削波）
+                renderStatusText.textContent = '正在處理音軌增益與 Math.tanh 軟削波編碼...';
+                const totalAudioSamples = Math.floor(totalDuration * sampleRate);
+                const leftIn = state.audioBuffer ? state.audioBuffer.getChannelData(0) : new Float32Array(totalAudioSamples);
+                const rightIn = (state.audioBuffer && state.audioBuffer.numberOfChannels > 1)
+                    ? state.audioBuffer.getChannelData(1)
+                    : leftIn;
+
+                const chunkFrames = sampleRate; // 每次送 1 秒 planar 音訊
+                const boost = state.volumeBoost;
+
+                for (let offset = 0; offset < totalAudioSamples; offset += chunkFrames) {
+                    const len = Math.min(chunkFrames, totalAudioSamples - offset);
+                    const planarBuffer = new Float32Array(len * 2);
+
+                    for (let i = 0; i < len; i++) {
+                        let sampleL = (leftIn[offset + i] || 0) * boost;
+                        let sampleR = (rightIn[offset + i] || 0) * boost;
+                        if (boost > 1.0) {
+                            sampleL = Math.tanh(sampleL);
+                            sampleR = Math.tanh(sampleR);
+                        } else {
+                            sampleL = Math.max(-1, Math.min(1, sampleL));
+                            sampleR = Math.max(-1, Math.min(1, sampleR));
+                        }
+                        planarBuffer[i] = sampleL;
+                        planarBuffer[len + i] = sampleR;
+                    }
+
+                    const timestampUs = Math.round((offset / sampleRate) * 1_000_000);
+                    const audioData = new AudioData({
+                        format: 'f32-planar',
+                        sampleRate: sampleRate,
+                        numberOfFrames: len,
+                        numberOfChannels: numberOfChannels,
+                        timestamp: timestampUs,
+                        data: planarBuffer
+                    });
+                    audioEncoder.encode(audioData);
+                    audioData.close();
+                }
+
+                // 2. 離線 30FPS 逐幀繪製與編碼視訊
+                // 鐵律 2：每 30 幀（每 1 秒）強制設定 { keyFrame: true } 建立關鍵影格索引表 (stss)
+                for (let frameIdx = 0; frameIdx < totalFrames; frameIdx++) {
+                    const timeSec = frameIdx / FPS;
+                    renderFrameToCanvas(mvCtx, timeSec, totalDuration);
+
+                    const timestampUs = Math.round((frameIdx / FPS) * 1_000_000);
+                    const durationUs = Math.round((1 / FPS) * 1_000_000);
+
+                    const videoFrame = new VideoFrame(mvCanvas, {
+                        timestamp: timestampUs,
+                        duration: durationUs
+                    });
+
+                    const isKeyFrame = (frameIdx % 30 === 0);
+                    videoEncoder.encode(videoFrame, { keyFrame: isKeyFrame });
+                    videoFrame.close();
+
+                    // 若佇列較深則等待消化，避免記憶體暴漲
+                    if (videoEncoder.encodeQueueSize > 15) {
+                        await videoEncoder.flush();
+                    }
+
+                    if (frameIdx % 5 === 0 || frameIdx === totalFrames - 1) {
+                        const pct = Math.round(((frameIdx + 1) / totalFrames) * 100);
+                        renderProgressBar.style.width = `${pct}%`;
+                        renderPercentText.textContent = `${pct}%`;
+                        renderStatusText.textContent = `正在離線算圖中：第 ${frameIdx + 1} / ${totalFrames} 幀 (${formatTime(timeSec)})`;
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+                }
+
+                renderStatusText.textContent = '正在封裝 MP4 關鍵影格索引表 (stss & fastStart)...';
+                await videoEncoder.flush();
+                await audioEncoder.flush();
+                videoEncoder.close();
+                audioEncoder.close();
+
+                muxer.finalize();
+                state.renderedMp4Buffer = muxer.target.buffer;
+
+                // 鐵律 4：合成完成時絕不自動下載，也不可預先將 Blob 綁定至隱藏連結
+                renderStatusText.textContent = '✅ 1080P MP4 合成完畢！請點擊下方「立即下載 MP4」儲存檔案。';
+                manualDownloadBtn.classList.remove('hidden');
+            } catch (err) {
+                console.error(err);
+                renderStatusText.textContent = `❌ 合成發生錯誤：${err.message || err}`;
+            } finally {
+                state.isRendering = false;
+                startRenderBtn.disabled = false;
+                startRenderBtn.classList.remove('opacity-60');
+            }
+        });
+
+        // 鐵律 4：點擊「立即下載」時，檔名後方自動附加當下時分秒（如 檔名_143022.mp4），確保每次檔名唯一
+        manualDownloadBtn.addEventListener('click', () => {
+            if (!state.renderedMp4Buffer) {
+                alert('請先合成影片！');
+                return;
+            }
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const ss = String(now.getSeconds()).padStart(2, '0');
+            const uniqueFileName = `${state.exportBaseName || 'AI_音樂MV作品'}_${hh}${mm}${ss}.mp4`;
+
+            const blob = new Blob([state.renderedMp4Buffer], { type: 'video/mp4' });
+            const url = URL.createObjectURL(blob);
+            const tempLink = document.createElement('a');
+            tempLink.href = url;
+            tempLink.download = uniqueFileName;
+            document.body.appendChild(tempLink);
+            tempLink.click();
+            document.body.removeChild(tempLink);
+            setTimeout(() => URL.revokeObjectURL(url), 3000);
+        });
+
+        // 初始繪製預覽畫面
+        drawPreviewFrame(0);
+    </script>
 </body>
 </html>
